@@ -1,36 +1,6 @@
-import { useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { skillCategories } from '../data/portfolioData'
-
-/* ───────────────────────────────────────────
-   Spotlight Card
-   ─────────────────────────────────────────── */
-function SpotlightCard({ children, className = '' }) {
-    const cardRef = useRef(null)
-    const [pos, setPos] = useState({ x: 0, y: 0 })
-
-    const handleMouse = useCallback((e) => {
-        const rect = cardRef.current?.getBoundingClientRect()
-        if (!rect) return
-        setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-    }, [])
-
-    return (
-        <div
-            ref={cardRef}
-            onMouseMove={handleMouse}
-            className={`spotlight-card ${className}`}
-        >
-            <div
-                className="spotlight-gradient"
-                style={{
-                    background: `radial-gradient(350px circle at ${pos.x}px ${pos.y}px, rgba(0,212,255,0.05), transparent 60%)`,
-                }}
-            />
-            <div className="relative z-10">{children}</div>
-        </div>
-    )
-}
+import SpotlightCard from './SpotlightCard'
 
 /* ───────────────────────────────────────────
    Skill Item
@@ -85,7 +55,7 @@ export default function Skills() {
                                 {...fadeUp}
                                 transition={{ ...fadeUp.transition, delay: catIndex * 0.06 }}
                             >
-                                <SpotlightCard className="p-5 sm:p-6 h-full">
+                                <SpotlightCard className="p-5 sm:p-6 h-full" glowSize={350} glowAlpha={0.05}>
                                     <div className="flex items-center gap-2.5 mb-4">
                                         <div className="p-1.5 rounded-lg bg-accent-dim border border-accent-mid/40">
                                             <Icon size={14} className="text-accent" />

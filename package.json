@@ -13,10 +13,12 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@react-three/fiber": "^9.6.1",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.563.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",

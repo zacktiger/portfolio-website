@@ -67,8 +67,8 @@ export const projects = [
         icon: Kanban,
         accent: 'cyan',
         image: '/project-saas.png',
-        github: '#',
-        live: '#',
+        github: 'https://github.com/zacktiger/Multi-Tenant-Project-Management-System',
+        live: null,
         description:
             'A scalable multi-tenant SaaS collaboration platform with strict data isolation and enterprise-grade security.',
         bullets: [
@@ -87,8 +87,8 @@ export const projects = [
         icon: BarChart3,
         accent: 'pink',
         image: '/project-algoviz.png',
-        github: '#',
-        live: '#',
+        github: 'https://github.com/zacktiger/algo-visualizer',
+        live: null,
         description:
             'An interactive algorithm visualizer covering 20+ sorting, searching, and graph algorithms with step-by-step execution.',
         bullets: [
@@ -106,8 +106,8 @@ export const projects = [
         icon: Globe2,
         accent: 'cyan',
         image: '/project-policast.png',
-        github: '#',
-        live: '#',
+        github: 'https://github.com/zacktiger/PoliCast',
+        live: null,
         description:
             'A real-time geopolitical prediction market platform tracking 52 live prediction markets with AI-powered forecasting.',
         bullets: [
@@ -117,6 +117,49 @@ export const projects = [
             'Designed on-demand AI briefing feature using FastAPI SSE to stream structured geopolitical analyses token-by-token to React.',
         ],
         tags: ['React', 'FastAPI', 'PostgreSQL', 'WebSockets', 'Groq API', 'GDELT', 'SSE'],
+    },
+]
+
+// ══════════════════════════════════════════
+//  MORE PROJECTS — compact grid, from GitHub
+// ══════════════════════════════════════════
+
+export const moreProjects = [
+    {
+        name: 'Roastmyresume',
+        description: 'AI app that brutally roasts your resume and tells you how to fix it.',
+        language: 'TypeScript',
+        github: 'https://github.com/zacktiger/Roastmyresume',
+    },
+    {
+        name: 'AI Expense Tracker',
+        description: 'Expense tracking app with AI-assisted categorization and insights.',
+        language: 'TypeScript',
+        github: 'https://github.com/zacktiger/AI-Expense-Tracker',
+    },
+    {
+        name: 'Secure Backend with RBAC',
+        description: 'Backend engineering fundamentals — secure auth, role-based authorization, scalable API design.',
+        language: 'JavaScript',
+        github: 'https://github.com/zacktiger/Secure-Backend-System-with-RBAC',
+    },
+    {
+        name: 'URL Shortener',
+        description: 'Full-stack URL shortening service with redirect analytics.',
+        language: 'TypeScript',
+        github: 'https://github.com/zacktiger/Url_shortner',
+    },
+    {
+        name: 'Cognimap',
+        description: 'Python tool for cognitive mapping and visualization.',
+        language: 'Python',
+        github: 'https://github.com/zacktiger/Cognimap',
+    },
+    {
+        name: 'Library Management System',
+        description: 'Object-oriented library system in modern C++ — polymorphism and smart pointers.',
+        language: 'C++',
+        github: 'https://github.com/zacktiger/Library-management-',
     },
 ]
 

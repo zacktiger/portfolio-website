@@ -1,34 +1,7 @@
-import { useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Mail, Linkedin, Github, Send, ArrowUpRight } from 'lucide-react'
 import { contactInfo } from '../data/portfolioData'
-
-function SpotlightCard({ children, className = '' }) {
-    const cardRef = useRef(null)
-    const [pos, setPos] = useState({ x: 0, y: 0 })
-
-    const handleMouse = useCallback((e) => {
-        const rect = cardRef.current?.getBoundingClientRect()
-        if (!rect) return
-        setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-    }, [])
-
-    return (
-        <div
-            ref={cardRef}
-            onMouseMove={handleMouse}
-            className={`spotlight-card ${className}`}
-        >
-            <div
-                className="spotlight-gradient"
-                style={{
-                    background: `radial-gradient(300px circle at ${pos.x}px ${pos.y}px, rgba(0,212,255,0.06), transparent 60%)`,
-                }}
-            />
-            <div className="relative z-10">{children}</div>
-        </div>
-    )
-}
+import SpotlightCard from './SpotlightCard'
 
 const fadeUp = {
     initial: { opacity: 0, y: 30 },
@@ -73,7 +46,7 @@ export default function Contact() {
                                 transition={{ ...fadeUp.transition, delay: 0.1 + i * 0.06 }}
                                 className="block group"
                             >
-                                <SpotlightCard className="p-5 text-center h-full">
+                                <SpotlightCard className="p-5 text-center h-full" glowSize={300}>
                                     <div className="inline-flex p-2.5 rounded-lg bg-accent-dim border border-accent-mid/40 mb-3 group-hover:bg-accent-mid/30 transition-colors">
                                         <Icon size={18} className="text-accent" />
                                     </div>

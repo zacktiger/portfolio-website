@@ -1,39 +1,8 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { GraduationCap, MapPin, Calendar, Trophy, Zap } from 'lucide-react'
 import { achievements } from '../data/portfolioData'
-
-/* ───────────────────────────────────────────
-   Spotlight Card (mouse-tracking glow)
-   ─────────────────────────────────────────── */
-function SpotlightCard({ children, className = '' }) {
-    const cardRef = useRef(null)
-    const [pos, setPos] = useState({ x: 0, y: 0 })
-
-    const handleMouse = useCallback((e) => {
-        const rect = cardRef.current?.getBoundingClientRect()
-        if (!rect) return
-        setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-    }, [])
-
-    return (
-        <div
-            ref={cardRef}
-            onMouseMove={handleMouse}
-            className={`spotlight-card ${className}`}
-        >
-            <div
-                className="spotlight-gradient"
-                style={{
-                    background: `radial-gradient(400px circle at ${pos.x}px ${pos.y}px, rgba(0,212,255,0.06), transparent 60%)`,
-                }}
-            />
-            <div className="relative z-10">
-                {children}
-            </div>
-        </div>
-    )
-}
+import SpotlightCard from './SpotlightCard'
 
 /* ───────────────────────────────────────────
    Animated Counter

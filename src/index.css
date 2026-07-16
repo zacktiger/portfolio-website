@@ -334,6 +334,25 @@ body.screen-shake {
 }
 
 /* ═══════════════════════════════════════════
+   LASER HIT FLASH (cursor shoot mechanic)
+   ═══════════════════════════════════════════ */
+
+@keyframes laser-flash {
+  0% { filter: brightness(1); }
+  25% { filter: brightness(1.6) saturate(1.4); }
+  100% { filter: brightness(1); }
+}
+
+.laser-flash {
+  animation: laser-flash 350ms ease-out;
+}
+
+.laser-flash .spotlight-card {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+}
+
+/* ═══════════════════════════════════════════
    RESPONSIVE — hide dock on mobile
    ═══════════════════════════════════════════ */
 

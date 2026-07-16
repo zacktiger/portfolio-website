@@ -1,6 +1,84 @@
-import { useRef, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { useRef, useState, useEffect, useCallback } from 'react'
+import { motion, useMotionValue, useSpring } from 'framer-motion'
 import { Github, Linkedin, Mail, ChevronDown } from 'lucide-react'
+
+/* ───────────────────────────────────────────
+   Typewriter — cycles through roles
+   ─────────────────────────────────────────── */
+const ROLES = [
+    'Full Stack Developer',
+    'Backend Engineer',
+    'Systems Builder',
+    'GameJam Winner — IIT BHU',
+]
+
+function Typewriter() {
+    const [text, setText] = useState('')
+    const [roleIndex, setRoleIndex] = useState(0)
+    const [phase, setPhase] = useState('typing') // typing | pausing | deleting
+
+    useEffect(() => {
+        const role = ROLES[roleIndex]
+        let timeout
+
+        if (phase === 'typing') {
+            if (text.length < role.length) {
+                timeout = setTimeout(() => setText(role.slice(0, text.length + 1)), 65)
+            } else {
+                timeout = setTimeout(() => setPhase('deleting'), 2200)
+            }
+        } else if (phase === 'deleting') {
+            if (text.length > 0) {
+                timeout = setTimeout(() => setText(text.slice(0, -1)), 35)
+            } else {
+                setRoleIndex(i => (i + 1) % ROLES.length)
+                setPhase('typing')
+            }
+        }
+        return () => clearTimeout(timeout)
+    }, [text, phase, roleIndex])
+
+    return (
+        <span className="inline-flex items-center">
+            <span className="text-text-secondary">{text}</span>
+            <motion.span
+                animate={{ opacity: [1, 0] }}
+                transition={{ duration: 0.7, repeat: Infinity, repeatType: 'reverse' }}
+                className="ml-0.5 inline-block w-[2px] h-[1.15em] bg-accent align-middle"
+            />
+        </span>
+    )
+}
+
+/* ───────────────────────────────────────────
+   Magnetic — element leans toward the cursor
+   ─────────────────────────────────────────── */
+function Magnetic({ children, strength = 0.35 }) {
+    const ref = useRef(null)
+    const x = useMotionValue(0)
+    const y = useMotionValue(0)
+    const sx = useSpring(x, { stiffness: 200, damping: 15 })
+    const sy = useSpring(y, { stiffness: 200, damping: 15 })
+
+    const handleMove = (e) => {
+        const rect = ref.current?.getBoundingClientRect()
+        if (!rect) return
+        x.set((e.clientX - (rect.left + rect.width / 2)) * strength)
+        y.set((e.clientY - (rect.top + rect.height / 2)) * strength)
+    }
+    const handleLeave = () => { x.set(0); y.set(0) }
+
+    return (
+        <motion.div
+            ref={ref}
+            onMouseMove={handleMove}
+            onMouseLeave={handleLeave}
+            style={{ x: sx, y: sy }}
+        >
+            {children}
+        </motion.div>
+    )
+}
 
 /* ───────────────────────────────────────────
    Interactive Particle Field (Canvas)
@@ -154,6 +232,22 @@ export default function Hero() {
 
             {/* Content */}
             <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+                {/* Availability badge */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.8 }}
+                    className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-border bg-surface/60 backdrop-blur-md"
+                >
+                    <span className="relative flex w-2 h-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                        <span className="relative inline-flex rounded-full w-2 h-2 bg-emerald-400" />
+                    </span>
+                    <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-text-secondary">
+                        Open to internships
+                    </span>
+                </motion.div>
+
                 {/* Label */}
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
@@ -177,18 +271,14 @@ export default function Hero() {
                     <span className="text-accent">BACHHAV</span>
                 </motion.h1>
 
-                {/* Subtitle */}
+                {/* Subtitle — typewriter roles */}
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.9, duration: 0.7 }}
-                    className="font-display text-text-secondary text-lg sm:text-xl tracking-wide mb-4"
+                    className="font-display text-lg sm:text-xl tracking-wide mb-4 min-h-[1.8em]"
                 >
-                    Full Stack Developer{' '}
-                    <span className="text-text-muted mx-2">•</span>{' '}
-                    Backend Engineer{' '}
-                    <span className="text-text-muted mx-2">•</span>{' '}
-                    Systems Builder
+                    <Typewriter />
                 </motion.p>
 
                 {/* One-liner */}
@@ -214,21 +304,26 @@ export default function Hero() {
                         { icon: Linkedin, href: 'https://www.linkedin.com/in/KshitijBachhav', label: 'LinkedIn' },
                         { icon: Mail, href: 'mailto:kshitijbachhav005@gmail.com', label: 'Email' },
                     ].map(({ icon: Icon, href, label }, i) => (
-                        <motion.a
+                        <motion.div
                             key={label}
-                            href={href}
-                            target={label !== 'Email' ? '_blank' : undefined}
-                            rel="noopener noreferrer"
-                            aria-label={label}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 1.7 + i * 0.1, type: 'spring', stiffness: 200 }}
-                            className="p-3 rounded-xl border border-border text-text-tertiary
-                                       hover:text-accent hover:border-accent-mid hover:bg-accent-dim
-                                       transition-all duration-300"
                         >
-                            <Icon size={18} />
-                        </motion.a>
+                            <Magnetic>
+                                <a
+                                    href={href}
+                                    target={label !== 'Email' ? '_blank' : undefined}
+                                    rel="noopener noreferrer"
+                                    aria-label={label}
+                                    className="block p-3 rounded-xl border border-border text-text-tertiary
+                                               hover:text-accent hover:border-accent-mid hover:bg-accent-dim
+                                               transition-colors duration-300"
+                                >
+                                    <Icon size={18} />
+                                </a>
+                            </Magnetic>
+                        </motion.div>
                     ))}
                 </motion.div>
 

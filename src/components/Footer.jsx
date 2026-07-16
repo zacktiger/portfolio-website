@@ -1,10 +1,10 @@
 import { Github, Linkedin, Mail } from 'lucide-react'
 
 export default function Footer() {
-    const quickLinks = ['Home', 'About', 'Skills', 'Projects', 'Contact']
+    const quickLinks = ['Home', 'About', 'Skills', 'Projects', 'GitHub', 'Contact']
 
     return (
-        <footer className="relative px-0 pt-16 pb-8 border-t border-border">
+        <footer className="relative z-10 px-0 pt-16 pb-8 border-t border-border">
             <div className="content-container">
                 <div className="grid sm:grid-cols-3 gap-10 mb-12">
                     {/* Brand */}
