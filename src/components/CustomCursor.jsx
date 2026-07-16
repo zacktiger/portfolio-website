@@ -2,11 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const isTouchDevice = () => 'ontouchstart' in window && navigator.maxTouchPoints > 0
 
-const MAX_TRAIL = 28       // trail points buffer
-const TRAIL_MAX_LEN = 55   // ~55px max visible trail
-const TRAIL_DECAY = 6      // how fast old points fade (per second)
+const MAX_TRAIL = 28
+const TRAIL_MAX_LEN = 55
+const TRAIL_DECAY = 6
 
-// ─── Particle system (energy sparks, only on collapsible clicks) ───
 function createParticles(x, y) {
     const count = 6 + Math.floor(Math.random() * 4)
     const particles = []
@@ -14,13 +13,11 @@ function createParticles(x, y) {
         const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.8
         const speed = 35 + Math.random() * 50
         const size = 1.5 + Math.random() * 2
-        const hue = Math.random() > 0.5 ? 187 : 310
-        particles.push({ id: Date.now() + i, x, y, angle, speed, size, hue, life: 1 })
+        particles.push({ id: Date.now() + i, x, y, angle, speed, size, life: 1 })
     }
     return particles
 }
 
-// Linear interpolate between two points, returning intermediate samples
 function interpolate(a, b, spacing) {
     const dx = b.x - a.x
     const dy = b.y - a.y
@@ -36,27 +33,27 @@ function interpolate(a, b, spacing) {
 }
 
 export default function CustomCursor() {
-    const [pos, setPos] = useState({ x: -100, y: -100 })
-    const [isVisible, setIsVisible] = useState(false)
     const [isTouch, setIsTouch] = useState(false)
     const canvasRef = useRef(null)
-    const trailRef = useRef([])        // { x, y, life }
+    const cursorRef = useRef(null)
+    const trailRef = useRef([])
     const particlesRef = useRef([])
     const animRef = useRef(null)
     const lastPosRef = useRef(null)
 
     useEffect(() => { setIsTouch(isTouchDevice()) }, [])
 
-    // Mouse tracking — feed trail with interpolated points
     useEffect(() => {
         if (isTouch) return
         const handleMove = (e) => {
             const nx = e.clientX
             const ny = e.clientY
-            setPos({ x: nx, y: ny })
-            if (!isVisible) setIsVisible(true)
 
-            // Interpolate between last position and new one
+            if (cursorRef.current) {
+                cursorRef.current.style.transform = `translate3d(${nx - 4}px, ${ny - 4}px, 0)`
+                cursorRef.current.style.opacity = '1'
+            }
+
             const last = lastPosRef.current
             if (last) {
                 const interp = interpolate(last, { x: nx, y: ny }, 3)
@@ -64,15 +61,17 @@ export default function CustomCursor() {
             }
             trailRef.current.push({ x: nx, y: ny, life: 1 })
 
-            // Keep buffer bounded
             if (trailRef.current.length > MAX_TRAIL * 3) {
                 trailRef.current = trailRef.current.slice(-MAX_TRAIL * 2)
             }
-
             lastPosRef.current = { x: nx, y: ny }
         }
-        const handleLeave = () => setIsVisible(false)
-        const handleEnter = () => setIsVisible(true)
+        const handleLeave = () => {
+            if (cursorRef.current) cursorRef.current.style.opacity = '0'
+        }
+        const handleEnter = () => {
+            if (cursorRef.current) cursorRef.current.style.opacity = '1'
+        }
 
         window.addEventListener('mousemove', handleMove)
         document.addEventListener('mouseleave', handleLeave)
@@ -82,9 +81,8 @@ export default function CustomCursor() {
             document.removeEventListener('mouseleave', handleLeave)
             document.removeEventListener('mouseenter', handleEnter)
         }
-    }, [isVisible, isTouch])
+    }, [isTouch])
 
-    // Canvas render loop — smooth trail + click particles
     useEffect(() => {
         const canvas = canvasRef.current
         if (!canvas) return
@@ -102,15 +100,11 @@ export default function CustomCursor() {
             last = now
             ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-            // ── Trail rendering ──
-            // Decay trail points
             trailRef.current.forEach(p => { p.life -= TRAIL_DECAY * dt })
             trailRef.current = trailRef.current.filter(p => p.life > 0.01)
 
             const trail = trailRef.current
             if (trail.length >= 2) {
-                // Compute cumulative distance from tip (newest point)
-                // and cull points beyond TRAIL_MAX_LEN
                 const distances = [0]
                 for (let i = trail.length - 2; i >= 0; i--) {
                     const a = trail[i + 1]
@@ -121,67 +115,58 @@ export default function CustomCursor() {
                 }
                 const totalLen = distances[0]
 
-                // Draw trail as a smooth tapered stroke
                 for (let i = 0; i < trail.length - 1; i++) {
                     const p0 = trail[i]
                     const p1 = trail[i + 1]
                     const distFromTip = totalLen - distances[i]
-
-                    // Skip segments beyond max trail length
                     if (distFromTip > TRAIL_MAX_LEN) continue
 
-                    // Taper: thickest at tip, thinnest at tail
                     const taper = 1 - (distFromTip / TRAIL_MAX_LEN)
-                    const width = taper * 3.5 + 0.3
-                    const alpha = taper * Math.min(p0.life, p1.life) * 0.7
-
+                    const width = taper * 2.5 + 0.3
+                    const alpha = taper * Math.min(p0.life, p1.life) * 0.5
                     if (alpha < 0.005) continue
 
                     ctx.save()
                     ctx.globalAlpha = alpha
-
-                    // Bloom layer (wider, softer)
-                    ctx.shadowColor = `rgba(232,121,249,${alpha * 0.6})`
-                    ctx.shadowBlur = 10 + taper * 6
-                    ctx.strokeStyle = `rgba(232,121,249,${alpha})`
-                    ctx.lineWidth = width + 2
+                    ctx.shadowColor = `rgba(0, 212, 255, ${alpha * 0.5})`
+                    ctx.shadowBlur = 8 + taper * 4
+                    ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`
+                    ctx.lineWidth = width + 1
                     ctx.lineCap = 'round'
                     ctx.beginPath()
                     ctx.moveTo(p0.x, p0.y)
                     ctx.lineTo(p1.x, p1.y)
                     ctx.stroke()
 
-                    // Core line (brighter, thinner)
-                    ctx.shadowBlur = 4
-                    ctx.shadowColor = `rgba(255,180,255,${alpha * 0.5})`
-                    ctx.strokeStyle = `rgba(255,200,255,${alpha * 0.9})`
-                    ctx.lineWidth = width * 0.5
+                    // Inner core
+                    ctx.shadowBlur = 3
+                    ctx.shadowColor = `rgba(200, 240, 255, ${alpha * 0.4})`
+                    ctx.strokeStyle = `rgba(200, 240, 255, ${alpha * 0.7})`
+                    ctx.lineWidth = width * 0.4
                     ctx.beginPath()
                     ctx.moveTo(p0.x, p0.y)
                     ctx.lineTo(p1.x, p1.y)
                     ctx.stroke()
-
                     ctx.restore()
                 }
             }
 
-            // ── Particle rendering (click sparks) ──
+            // Particles
             particlesRef.current = particlesRef.current.filter(p => p.life > 0)
             particlesRef.current.forEach(p => {
                 p.x += Math.cos(p.angle) * p.speed * dt
                 p.y += Math.sin(p.angle) * p.speed * dt
                 p.life -= dt * 3.5
                 p.speed *= 0.96
-
                 const alpha = Math.max(0, p.life)
                 ctx.save()
                 ctx.globalAlpha = alpha
-                ctx.shadowColor = `hsla(${p.hue}, 80%, 65%, ${alpha})`
-                ctx.shadowBlur = 8
+                ctx.shadowColor = `rgba(0, 212, 255, ${alpha})`
+                ctx.shadowBlur = 6
                 const len = p.size * 2.5
-                ctx.lineWidth = p.size * 0.8
+                ctx.lineWidth = p.size * 0.7
                 ctx.lineCap = 'round'
-                ctx.strokeStyle = `hsla(${p.hue}, 80%, 65%, ${alpha})`
+                ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`
                 ctx.beginPath()
                 ctx.moveTo(p.x, p.y)
                 ctx.lineTo(p.x - Math.cos(p.angle) * len, p.y - Math.sin(p.angle) * len)
@@ -198,7 +183,6 @@ export default function CustomCursor() {
         }
     }, [isTouch])
 
-    // Click handler — particles + shake only on collapsible cards
     const shoot = useCallback((e) => {
         const x = e.clientX ?? e.touches?.[0]?.clientX
         const y = e.clientY ?? e.touches?.[0]?.clientY
@@ -211,12 +195,10 @@ export default function CustomCursor() {
             document.body.classList.add('screen-shake')
             setTimeout(() => document.body.classList.remove('screen-shake'), 100)
             particlesRef.current.push(...createParticles(x, y))
-            setTimeout(() => {
-                projectBtn.dispatchEvent(new CustomEvent('laser-hit', {
-                    detail: { projectId: projectBtn.dataset.projectId },
-                    bubbles: true,
-                }))
-            }, 0)
+            projectBtn.dispatchEvent(new CustomEvent('laser-hit', {
+                detail: { projectId: projectBtn.dataset.projectId },
+                bubbles: true,
+            }))
         }
     }, [])
 
@@ -229,7 +211,6 @@ export default function CustomCursor() {
 
     return (
         <>
-            {/* Trail + particle canvas */}
             <canvas
                 ref={canvasRef}
                 style={{
@@ -239,46 +220,24 @@ export default function CustomCursor() {
                     pointerEvents: 'none',
                 }}
             />
-
-            {/* Triangular ship cursor */}
-            {isVisible && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        left: pos.x,
-                        top: pos.y,
-                        pointerEvents: 'none',
-                        zIndex: 99999,
-                        transform: 'translate(-10px, -10px)',
-                    }}
-                >
-                    <svg width="20" height="24" viewBox="0 0 20 24" fill="none">
-                        <defs>
-                            <filter id="ship-glow">
-                                <feGaussianBlur stdDeviation="1.2" result="blur" />
-                                <feMerge>
-                                    <feMergeNode in="blur" />
-                                    <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                            </filter>
-                        </defs>
-                        <g filter="url(#ship-glow)">
-                            <path
-                                d="M10 1 L18 20 L14 17 L10 22 L6 17 L2 20 Z"
-                                fill="rgba(232,121,249,0.7)"
-                                stroke="rgba(232,121,249,0.9)"
-                                strokeWidth="0.6"
-                            />
-                            <path
-                                d="M10 6 L13 15 L7 15 Z"
-                                fill="rgba(34,211,238,0.5)"
-                            />
-                            <line x1="4" y1="17" x2="8" y2="12" stroke="rgba(34,211,238,0.4)" strokeWidth="0.5" />
-                            <line x1="16" y1="17" x2="12" y2="12" stroke="rgba(34,211,238,0.4)" strokeWidth="0.5" />
-                        </g>
-                    </svg>
-                </div>
-            )}
+            {/* Simple dot cursor */}
+            <div
+                ref={cursorRef}
+                style={{
+                    position: 'fixed',
+                    left: 0,
+                    top: 0,
+                    pointerEvents: 'none',
+                    zIndex: 99999,
+                    opacity: 0,
+                    willChange: 'transform',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: '#00d4ff',
+                    boxShadow: '0 0 8px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.2)',
+                }}
+            />
         </>
     )
 }

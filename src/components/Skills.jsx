@@ -1,169 +1,111 @@
+import { useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import {
-    Code2, Database, Layout, Cpu,
-} from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
-import Card from './Card'
-import SectionTitle from './SectionTitle'
+import { skillCategories } from '../data/portfolioData'
 
-const skillCategories = [
-    {
-        title: 'Languages',
-        icon: Code2,
-        color: 'cyan',
-        skills: [
-            { name: 'C++', tags: ['DSA', 'STL', 'OOP', 'Huffman Coding'], usedIn: 'File Compressor, 200+ DSA problems' },
-            { name: 'JavaScript', tags: ['ES6+', 'async/await', 'DOM', 'Node'], usedIn: 'Portfolio, Task Manager' },
-            { name: 'Python', tags: ['scripting', 'NumPy', 'automation'], usedIn: 'Data analysis scripts' },
-            { name: 'SQL', tags: ['queries', 'joins', 'indexing'], usedIn: 'Task Manager DBMS' },
-        ],
-    },
-    {
-        title: 'Frameworks & Libraries',
-        icon: Layout,
-        color: 'pink',
-        skills: [
-            { name: 'React.js', tags: ['hooks', 'state mgmt', 'routing', 'animations'], usedIn: 'Portfolio, Task Manager' },
-            { name: 'Node.js', tags: ['Express', 'REST APIs', 'middleware'], usedIn: 'Task Manager API, Portfolio backend' },
-            { name: 'Django', tags: ['ORM', 'views', 'templates'], usedIn: 'Internal project tools' },
-            { name: 'Framer Motion', tags: ['animations', 'gestures', 'layout'], usedIn: 'Portfolio site' },
-        ],
-    },
-    {
-        title: 'Databases & Tools',
-        icon: Database,
-        color: 'cyan',
-        skills: [
-            { name: 'MongoDB', tags: ['CRUD', 'aggregation', 'Mongoose'], usedIn: 'Task Manager' },
-            { name: 'MySQL', tags: ['joins', 'normalization', 'triggers'], usedIn: 'Academic projects' },
-            { name: 'Git & GitHub', tags: ['branches', 'PRs', 'CI/CD'], usedIn: 'All projects' },
-        ],
-    },
-    {
-        title: 'Core Concepts',
-        icon: Cpu,
-        color: 'pink',
-        skills: [
-            { name: 'DSA', tags: ['trees', 'graphs', 'DP', 'sorting'], usedIn: '200+ problems, GameJam' },
-            { name: 'OOP', tags: ['inheritance', 'polymorphism', 'SOLID'], usedIn: 'File Compressor, Task Manager' },
-            { name: 'RESTful APIs', tags: ['CRUD', 'auth', 'JWT', 'middleware'], usedIn: 'Task Manager API' },
-            { name: 'OS & Networks', tags: ['processes', 'TCP/IP', 'sockets'], usedIn: 'Academic coursework' },
-        ],
-    },
-]
+/* ───────────────────────────────────────────
+   Spotlight Card
+   ─────────────────────────────────────────── */
+function SpotlightCard({ children, className = '' }) {
+    const cardRef = useRef(null)
+    const [pos, setPos] = useState({ x: 0, y: 0 })
 
-function SkillItem({ skill, color, isDark, delay }) {
-    const isP = color === 'pink'
+    const handleMouse = useCallback((e) => {
+        const rect = cardRef.current?.getBoundingClientRect()
+        if (!rect) return
+        setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    }, [])
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            viewport={{ once: true }}
-            transition={{ delay, duration: 0.5 }}
-            className="mb-5 last:mb-0"
+        <div
+            ref={cardRef}
+            onMouseMove={handleMouse}
+            className={`spotlight-card ${className}`}
         >
-            {/* Skill name */}
-            <h4 className={`font-display font-semibold text-sm tracking-wide mb-1.5 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                {skill.name}
-            </h4>
+            <div
+                className="spotlight-gradient"
+                style={{
+                    background: `radial-gradient(350px circle at ${pos.x}px ${pos.y}px, rgba(0,212,255,0.05), transparent 60%)`,
+                }}
+            />
+            <div className="relative z-10">{children}</div>
+        </div>
+    )
+}
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-1.5 mb-2">
-                {skill.tags.map(tag => (
-                    <span
-                        key={tag}
-                        className={`
-                            text-[10px] font-display tracking-wider px-2 py-0.5 rounded-full
-                            ${isDark
-                                ? isP
-                                    ? 'bg-neon-pink/8 text-neon-pink/60 border border-neon-pink/10'
-                                    : 'bg-neon-cyan/8 text-neon-cyan/60 border border-neon-cyan/10'
-                                : isP
-                                    ? 'bg-pastel-purple/8 text-pastel-purple/70 border border-pastel-purple/15'
-                                    : 'bg-pastel-cyan/8 text-pastel-cyan/70 border border-pastel-cyan/15'
-                            }
-                        `}
-                    >
-                        {tag}
-                    </span>
-                ))}
-            </div>
-
-            {/* Used in */}
-            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                <span className={isDark ? (isP ? 'text-neon-pink/40' : 'text-neon-cyan/40') : (isP ? 'text-pastel-purple/50' : 'text-pastel-cyan/50')}>
-                    Used in:{' '}
-                </span>
-                {skill.usedIn}
-            </p>
+/* ───────────────────────────────────────────
+   Skill Item
+   ─────────────────────────────────────────── */
+function SkillItem({ name, delay }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay }}
+            className="group flex items-center gap-3 py-1.5 px-2.5 rounded-md hover:bg-white/[0.02] transition-colors"
+        >
+            <div className="w-1.5 h-1.5 rounded-full bg-accent/40 group-hover:bg-accent transition-colors flex-shrink-0" />
+            <span className="font-display text-[13px] text-text-secondary group-hover:text-text-primary transition-colors">
+                {name}
+            </span>
         </motion.div>
     )
 }
 
+/* ───────────────────────────────────────────
+   Skills Section
+   ─────────────────────────────────────────── */
+const fadeUp = {
+    initial: { opacity: 0, y: 30 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-80px' },
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+}
+
 export default function Skills() {
-    const { isDark } = useTheme()
-
     return (
-        <section id="skills" className="relative py-32 lg:py-40 px-6">
-            <div className="max-w-6xl mx-auto">
-                <SectionTitle subtitle="Technologies & Expertise">
-                    SKILLS
-                </SectionTitle>
+        <section id="skills" className="relative py-24 sm:py-32">
+            <div className="content-container">
+                {/* Header */}
+                <motion.div {...fadeUp} className="mb-12">
+                    <p className="section-label">Skills</p>
+                    <h2 className="section-title">
+                        Tools I work<br />
+                        <span className="text-accent">with daily.</span>
+                    </h2>
+                </motion.div>
 
-                <div className="grid sm:grid-cols-2 gap-8">
-                    {skillCategories.map((category, index) => {
-                        const Icon = category.icon
-                        const isP = category.color === 'pink'
-
+                {/* Skills grid */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                    {skillCategories.map((cat, catIndex) => {
+                        const Icon = cat.icon
                         return (
-                            <Card
-                                key={category.title}
-                                className=""
-                                glowColor={category.color}
-                                delay={index * 0.1}
+                            <motion.div
+                                key={cat.title}
+                                {...fadeUp}
+                                transition={{ ...fadeUp.transition, delay: catIndex * 0.06 }}
                             >
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div
-                                        className={`
-                                            p-2.5 rounded-xl border
-                                            ${isDark
-                                                ? isP ? 'border-neon-pink/30 bg-neon-pink/5' : 'border-neon-cyan/30 bg-neon-cyan/5'
-                                                : isP ? 'border-pastel-purple/30 bg-pastel-purple/5' : 'border-pastel-cyan/30 bg-pastel-cyan/5'
-                                            }
-                                        `}
-                                    >
-                                        <Icon
-                                            size={20}
-                                            className={isDark
-                                                ? isP ? 'text-neon-pink' : 'text-neon-cyan'
-                                                : isP ? 'text-pastel-purple' : 'text-pastel-cyan'
-                                            }
-                                        />
+                                <SpotlightCard className="p-5 sm:p-6 h-full">
+                                    <div className="flex items-center gap-2.5 mb-4">
+                                        <div className="p-1.5 rounded-lg bg-accent-dim border border-accent-mid/40">
+                                            <Icon size={14} className="text-accent" />
+                                        </div>
+                                        <h3 className="font-heading text-[13px] font-semibold tracking-wide text-text-primary">
+                                            {cat.title}
+                                        </h3>
                                     </div>
-                                    <h3
-                                        className={`
-                                            font-heading text-sm font-semibold tracking-widest uppercase
-                                            ${isDark
-                                                ? isP ? 'text-neon-pink' : 'text-neon-cyan'
-                                                : isP ? 'text-pastel-purple' : 'text-pastel-cyan'
-                                            }
-                                        `}
-                                    >
-                                        {category.title}
-                                    </h3>
-                                </div>
 
-                                {category.skills.map((skill, i) => (
-                                    <SkillItem
-                                        key={skill.name}
-                                        skill={skill}
-                                        color={category.color}
-                                        isDark={isDark}
-                                        delay={0.2 + i * 0.08}
-                                    />
-                                ))}
-                            </Card>
+                                    <div className="space-y-0">
+                                        {cat.skills.map((skill, i) => (
+                                            <SkillItem
+                                                key={skill}
+                                                name={skill}
+                                                delay={catIndex * 0.04 + i * 0.03}
+                                            />
+                                        ))}
+                                    </div>
+                                </SpotlightCard>
+                            </motion.div>
                         )
                     })}
                 </div>

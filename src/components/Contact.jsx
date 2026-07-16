@@ -1,117 +1,112 @@
+import { useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Phone, Linkedin, Github, Send } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
-import Card from './Card'
-import SectionTitle from './SectionTitle'
+import { Mail, Linkedin, Github, Send, ArrowUpRight } from 'lucide-react'
+import { contactInfo } from '../data/portfolioData'
 
-export default function Contact() {
-    const { isDark } = useTheme()
+function SpotlightCard({ children, className = '' }) {
+    const cardRef = useRef(null)
+    const [pos, setPos] = useState({ x: 0, y: 0 })
 
-    const contactInfo = [
-        {
-            icon: Mail,
-            label: 'Email',
-            value: 'kshitijbachhav005@gmail.com',
-            href: 'mailto:kshitijbachhav005@gmail.com',
-        },
-        {
-            icon: Phone,
-            label: 'Phone',
-            value: '+91-9322391752',
-            href: 'tel:+919322391752',
-        },
-        {
-            icon: Linkedin,
-            label: 'LinkedIn',
-            value: 'KshitijBachhav',
-            href: 'www.linkedin.com/in/kshitij-bachhav-789a59213',
-        },
-        {
-            icon: Github,
-            label: 'GitHub',
-            value: 'KshitijBachhav',
-            href: 'https://github.com/zacktiger',
-        },
-    ]
+    const handleMouse = useCallback((e) => {
+        const rect = cardRef.current?.getBoundingClientRect()
+        if (!rect) return
+        setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    }, [])
 
     return (
-        <section id="contact" className="relative py-32 lg:py-40 px-6">
-            <div className="max-w-4xl mx-auto">
-                <SectionTitle subtitle="Let's Connect">
-                    CONTACT
-                </SectionTitle>
+        <div
+            ref={cardRef}
+            onMouseMove={handleMouse}
+            className={`spotlight-card ${className}`}
+        >
+            <div
+                className="spotlight-gradient"
+                style={{
+                    background: `radial-gradient(300px circle at ${pos.x}px ${pos.y}px, rgba(0,212,255,0.06), transparent 60%)`,
+                }}
+            />
+            <div className="relative z-10">{children}</div>
+        </div>
+    )
+}
 
-                <Card className="" delay={0.1}>
-                    <div className="text-center mb-10">
-                        <p className={`font-display text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Interested in working together? Have a question? Feel free to reach out!
-                        </p>
-                    </div>
+const fadeUp = {
+    initial: { opacity: 0, y: 30 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-80px' },
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+}
 
-                    <div className="grid sm:grid-cols-2 gap-6">
-                        {contactInfo.map((info, index) => {
-                            const Icon = info.icon
+const items = [
+    { icon: Mail, label: 'Email', value: contactInfo.email, href: `mailto:${contactInfo.email}` },
+    { icon: Linkedin, label: 'LinkedIn', value: 'Kshitij Bachhav', href: contactInfo.linkedin },
+    { icon: Github, label: 'GitHub', value: '@zacktiger', href: contactInfo.github },
+]
 
-                            return (
-                                <motion.a
-                                    key={info.label}
-                                    href={info.href}
-                                    target={info.href.startsWith('http') ? '_blank' : undefined}
-                                    rel={info.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: 0.2 + index * 0.1 }}
-                                    whileHover={{ scale: 1.03 }}
-                                    className={`
-                    flex items-center gap-4 p-5 rounded-xl border transition-all duration-300
-                    ${isDark
-                                            ? 'border-neon-cyan/15 bg-dark-surface/50 hover:border-neon-cyan/50 hover:shadow-glow-cyan'
-                                            : 'border-pastel-cyan/20 bg-light-surface/50 hover:border-pastel-cyan/50'
-                                        }
-                  `}
-                                >
-                                    <div
-                                        className={`
-                      p-3 rounded-xl
-                      ${isDark ? 'bg-neon-cyan/5 border border-neon-cyan/20' : 'bg-pastel-cyan/10 border border-pastel-cyan/20'}
-                    `}
-                                    >
-                                        <Icon size={20} className={isDark ? 'text-neon-cyan' : 'text-pastel-cyan'} />
+export default function Contact() {
+    return (
+        <section id="contact" className="relative py-24 sm:py-32">
+            <div className="content-container">
+                {/* Header */}
+                <motion.div {...fadeUp} className="mb-12">
+                    <p className="section-label">Contact</p>
+                    <h2 className="section-title mb-3">
+                        Let's work<br />
+                        <span className="text-accent">together.</span>
+                    </h2>
+                    <p className="font-body text-text-tertiary text-sm max-w-md">
+                        Open to internships, collaborations, and interesting engineering challenges.
+                    </p>
+                </motion.div>
+
+                {/* Contact cards */}
+                <div className="grid sm:grid-cols-3 gap-4 mb-10">
+                    {items.map((item, i) => {
+                        const Icon = item.icon
+                        return (
+                            <motion.a
+                                key={item.label}
+                                href={item.href}
+                                target={item.label !== 'Email' ? '_blank' : undefined}
+                                rel="noopener noreferrer"
+                                {...fadeUp}
+                                transition={{ ...fadeUp.transition, delay: 0.1 + i * 0.06 }}
+                                className="block group"
+                            >
+                                <SpotlightCard className="p-5 text-center h-full">
+                                    <div className="inline-flex p-2.5 rounded-lg bg-accent-dim border border-accent-mid/40 mb-3 group-hover:bg-accent-mid/30 transition-colors">
+                                        <Icon size={18} className="text-accent" />
                                     </div>
-                                    <div>
-                                        <p className={`text-xs font-display tracking-widest uppercase ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                                            {info.label}
-                                        </p>
-                                        <p className={`font-display text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                                            {info.value}
-                                        </p>
-                                    </div>
-                                </motion.a>
-                            )
-                        })}
-                    </div>
+                                    <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-text-muted mb-1">
+                                        {item.label}
+                                    </p>
+                                    <p className="text-[13px] font-display font-medium text-text-primary truncate">
+                                        {item.value}
+                                    </p>
+                                    <ArrowUpRight
+                                        size={13}
+                                        className="mx-auto mt-2.5 text-text-muted opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-300 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                                    />
+                                </SpotlightCard>
+                            </motion.a>
+                        )
+                    })}
+                </div>
 
-                    {/* CTA Button */}
-                    <div className="mt-10 text-center">
-                        <motion.a
-                            href="mailto:kshitijbachhav005@gmail.com"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.98 }}
-                            className={`
-                inline-flex items-center gap-2 px-8 py-3 rounded-xl font-display font-semibold text-sm tracking-wider
-                transition-all duration-300
-                ${isDark
-                                    ? 'bg-neon-cyan/10 border border-neon-cyan/40 text-neon-cyan hover:bg-neon-cyan/20 hover:shadow-glow-cyan'
-                                    : 'bg-pastel-cyan/10 border border-pastel-cyan/40 text-pastel-cyan hover:bg-pastel-cyan/20'
-                                }
-              `}
-                        >
-                            <Send size={16} />
-                            SEND A MESSAGE
-                        </motion.a>
-                    </div>
-                </Card>
+                {/* CTA */}
+                <motion.div
+                    {...fadeUp}
+                    transition={{ ...fadeUp.transition, delay: 0.3 }}
+                    className="text-center"
+                >
+                    <a
+                        href={`mailto:${contactInfo.email}`}
+                        className="cta-button"
+                    >
+                        <Send size={15} />
+                        Send a Message
+                    </a>
+                </motion.div>
             </div>
         </section>
     )
