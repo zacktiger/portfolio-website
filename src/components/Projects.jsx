@@ -1,268 +1,226 @@
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, Gamepad2, Globe, CheckSquare, FileArchive } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
-import SectionTitle from './SectionTitle'
+import { useRef, useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Github, ArrowUpRight } from 'lucide-react'
+import { projects, moreProjects } from '../data/portfolioData'
 
-const projects = [
-    {
-        id: 'technex-gamejam',
-        title: 'Technex GameJam Project',
-        subtitle: 'Game Development, Logic Design',
-        date: 'January 2026',
-        icon: Gamepad2,
-        accent: 'pink',
-        description: 'Designed and developed a complete game prototype within 48 hours in a 4-member team. Won 1st Prize for innovation, gameplay mechanics, and system design.',
-        bullets: [
-            'Implemented game logic, collision detection, and physics handling',
-            'Used Git for version control and branch management under time constraints',
-        ],
-        tags: ['Game Dev', 'Physics', 'Git', 'Team Work'],
-    },
-    {
-        id: 'developer-portfolio',
-        title: 'Personal Developer Portfolio',
-        subtitle: 'React, Node.js, CSS',
-        date: '2024',
-        icon: Globe,
-        accent: 'cyan',
-        description: 'Built a responsive portfolio website to showcase projects, skills, and experience with a clean, modern design.',
-        bullets: [
-            'Developed reusable UI components using React Hooks',
-            'Created Node.js backend for contact form and email notifications',
-            'Deployed on Vercel with continuous deployment',
-        ],
-        tags: ['React', 'Node.js', 'Vercel', 'CI/CD'],
-    },
-    {
-        id: 'task-management',
-        title: 'Task Management System',
-        subtitle: 'MERN Stack',
-        date: 'December 2025',
-        icon: CheckSquare,
-        accent: 'pink',
-        description: 'A full-stack web app supporting task creation, update, deletion, and tracking with authentication.',
-        bullets: [
-            'RESTful APIs with Express.js and CRUD operations with MongoDB',
-            'JWT authentication and role-based access control',
-            'React Context API for scalable state management',
-        ],
-        tags: ['MongoDB', 'Express', 'React', 'Node.js', 'JWT'],
-    },
-    {
-        id: 'file-compressor',
-        title: 'File Compressor Tool',
-        subtitle: 'C++, Data Structures (STL)',
-        date: 'November 2025',
-        icon: FileArchive,
-        accent: 'cyan',
-        description: 'Lossless file compression tool using Huffman Coding achieving ~40% size reduction for text files.',
-        bullets: [
-            'Binary trees and priority queues from STL for efficient encoding',
-            'Low-level file I/O, memory optimization, and bit-level operations',
-        ],
-        tags: ['C++', 'Huffman Coding', 'STL', 'Algorithms'],
-    },
-]
+const fadeUp = {
+    initial: { opacity: 0, y: 30 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-80px' },
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+}
 
-export default function Projects() {
-    const { isDark } = useTheme()
-    const [expandedIndex, setExpandedIndex] = useState(null)
-    const [hitFlash, setHitFlash] = useState(null)
-    const sectionRef = useRef(null)
+/* ───────────────────────────────────────────
+   Featured Project — editorial row
+   ─────────────────────────────────────────── */
+function ProjectRow({ project, index }) {
+    const rowRef = useRef(null)
+    const [isHit, setIsHit] = useState(false)
+    const imageLeft = index % 2 === 1
 
-    const toggle = (index) => {
-        setExpandedIndex(prev => (prev === index ? null : index))
-    }
-
-    // Listen for laser-hit events — flash only (toggle handled by native onClick)
+    // React to laser shots from CustomCursor
     useEffect(() => {
-        const handler = (e) => {
-            const projectId = e.detail?.projectId
-            const idx = projects.findIndex(p => p.id === projectId)
-            if (idx >= 0) {
-                setHitFlash(idx)
-                setTimeout(() => setHitFlash(null), 400)
-            }
+        const el = rowRef.current
+        if (!el) return
+        const onHit = () => {
+            setIsHit(true)
+            setTimeout(() => setIsHit(false), 350)
         }
-        const section = sectionRef.current
-        if (section) {
-            section.addEventListener('laser-hit', handler)
-            return () => section.removeEventListener('laser-hit', handler)
-        }
+        el.addEventListener('laser-hit', onHit)
+        return () => el.removeEventListener('laser-hit', onHit)
     }, [])
 
     return (
-        <section id="projects" className="relative py-32 lg:py-40 px-6" ref={sectionRef}>
-            <div className="max-w-3xl mx-auto">
-                <SectionTitle subtitle="Things I've Built">
-                    PROJECTS
-                </SectionTitle>
+        <motion.article
+            ref={rowRef}
+            data-project-id={project.id}
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className={`project-row group relative grid lg:grid-cols-12 gap-8 lg:gap-12 items-center py-16 sm:py-20 ${isHit ? 'laser-flash' : ''}`}
+        >
+            {/* Visual */}
+            <div className={`lg:col-span-7 ${imageLeft ? 'lg:order-1' : 'lg:order-2'}`}>
+                <a
+                    href={project.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${project.title} on GitHub`}
+                    className="block"
+                >
+                    <div className="project-visual aspect-[16/10]">
+                        <img src={project.image} alt={`${project.title} preview`} loading="lazy" />
+                    </div>
+                </a>
+            </div>
 
-                <div className="flex flex-col gap-3">
-                    {projects.map((project, index) => {
-                        const Icon = project.icon
-                        const isP = project.accent === 'pink'
-                        const isOpen = expandedIndex === index
-                        const isHit = hitFlash === index
+            {/* Text */}
+            <div className={`lg:col-span-5 relative z-10 ${imageLeft ? 'lg:order-2' : 'lg:order-1'}`}>
+                <span className="ghost-num hidden sm:block mb-3" aria-hidden="true" style={{ fontSize: 'clamp(3rem, 5vw, 4.5rem)' }}>
+                    {String(index + 1).padStart(2, '0')}
+                </span>
+                <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent mb-4">
+                    {project.date}
+                </p>
+                <h3
+                    className="font-heading font-bold text-2xl sm:text-3xl text-text-primary mb-4"
+                    style={{ letterSpacing: '-0.02em', lineHeight: 1.15 }}
+                >
+                    {project.title}
+                </h3>
+                <p className="font-body text-[15px] text-text-secondary leading-[1.75] mb-5">
+                    {project.description}
+                </p>
 
-                        return (
-                            <motion.div
-                                key={project.id}
-                                className="overflow-hidden"
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1, duration: 0.5 }}
-                            >
-                                {/* Clickable title row */}
-                                <button
-                                    data-project-id={project.id}
-                                    onClick={() => toggle(index)}
-                                    className={`
-                                        project-item w-full text-left flex items-center gap-4 px-6 py-5
-                                        rounded-xl border transition-all duration-300
-                                        ${isHit ? 'laser-hit-flash' : ''}
-                                        ${isDark
-                                            ? isOpen
-                                                ? 'bg-dark-card border-white/10'
-                                                : 'bg-dark-card/40 border-white/5 hover:border-white/10 hover:bg-dark-card/70'
-                                            : isOpen
-                                                ? 'bg-light-card border-black/10'
-                                                : 'bg-light-card/40 border-black/5 hover:border-black/8 hover:bg-light-card/70'
-                                        }
-                                    `}
-                                    style={isOpen ? {
-                                        borderLeftWidth: '3px',
-                                        borderLeftColor: isDark
-                                            ? isP ? '#e879f9' : '#22d3ee'
-                                            : isP ? '#b48ad8' : '#6ec6c0',
-                                    } : {}}
-                                >
-                                    {/* Icon */}
-                                    <div
-                                        className={`
-                                            p-2 rounded-lg shrink-0
-                                            ${isDark
-                                                ? isP ? 'bg-neon-pink/8 text-neon-pink' : 'bg-neon-cyan/8 text-neon-cyan'
-                                                : isP ? 'bg-pastel-purple/10 text-pastel-purple' : 'bg-pastel-cyan/10 text-pastel-cyan'
-                                            }
-                                        `}
-                                    >
-                                        <Icon size={18} />
-                                    </div>
+                <ul className="space-y-2.5 mb-6">
+                    {project.bullets.slice(0, 2).map((bullet, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                            <span className="w-1 h-1 rounded-full bg-accent mt-[9px] flex-shrink-0" />
+                            <span className="text-[13.5px] text-text-tertiary leading-[1.7]">
+                                {bullet}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
 
-                                    {/* Title & date */}
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className={`font-display font-semibold text-base ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                                            {project.title}
-                                        </h3>
-                                        <p className={`text-xs tracking-wider mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                            {project.date} — {project.subtitle}
-                                        </p>
-                                    </div>
+                {/* Tags as mono text */}
+                <p className="font-mono text-[11px] tracking-wide text-text-muted mb-7">
+                    {project.tags.join('  /  ')}
+                </p>
 
-                                    {/* Chevron */}
-                                    <motion.div
-                                        animate={{ rotate: isOpen ? 90 : 0 }}
-                                        transition={{ duration: 0.25 }}
-                                        className={`shrink-0 ${isDark
-                                            ? isP ? 'text-neon-pink/50' : 'text-neon-cyan/50'
-                                            : isP ? 'text-pastel-purple/60' : 'text-pastel-cyan/60'
-                                            }`}
-                                    >
-                                        <ChevronRight size={18} />
-                                    </motion.div>
-                                </button>
+                {/* Text links */}
+                <div className="flex items-center gap-8">
+                    <a
+                        href={project.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium"
+                    >
+                        <Github size={15} />
+                        Code
+                        <ArrowUpRight size={13} />
+                    </a>
+                    {project.live && (
+                        <a
+                            href={project.live}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="link-underline font-display text-sm font-medium text-accent"
+                        >
+                            Live Demo
+                            <ArrowUpRight size={13} />
+                        </a>
+                    )}
+                </div>
+            </div>
+        </motion.article>
+    )
+}
 
-                                {/* Expandable content */}
-                                <AnimatePresence>
-                                    {isOpen && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{
-                                                height: { type: 'spring', damping: 22, stiffness: 180 },
-                                                opacity: { duration: 0.25 },
-                                            }}
-                                            className="overflow-hidden"
-                                        >
-                                            <div
-                                                className={`
-                                                    px-6 py-6 mx-1 mb-1 rounded-b-xl border-x border-b
-                                                    ${isDark
-                                                        ? 'bg-dark-surface/50 border-white/5'
-                                                        : 'bg-light-surface/50 border-black/5'
-                                                    }
-                                                `}
-                                                style={{
-                                                    borderLeftWidth: '3px',
-                                                    borderLeftColor: isDark
-                                                        ? isP ? '#e879f9' : '#22d3ee'
-                                                        : isP ? '#b48ad8' : '#6ec6c0',
-                                                }}
-                                            >
-                                                {/* Description */}
-                                                <motion.p
-                                                    initial={{ y: 10, opacity: 0 }}
-                                                    animate={{ y: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.05 }}
-                                                    className={`text-sm leading-relaxed mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}
-                                                >
-                                                    {project.description}
-                                                </motion.p>
+/* ───────────────────────────────────────────
+   More Projects — hairline list rows
+   ─────────────────────────────────────────── */
+const languageColors = {
+    TypeScript: '#3178c6',
+    JavaScript: '#f1e05a',
+    Python: '#3572A5',
+    'C++': '#f34b7d',
+}
 
-                                                {/* Bullets */}
-                                                <motion.ul
-                                                    initial={{ y: 10, opacity: 0 }}
-                                                    animate={{ y: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.1 }}
-                                                    className={`space-y-2 mb-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}
-                                                >
-                                                    {project.bullets.map((b, i) => (
-                                                        <li key={i} className="flex items-start gap-2 text-sm">
-                                                            <span className={`mt-1 ${isDark ? (isP ? 'text-neon-pink/70' : 'text-neon-cyan/70') : (isP ? 'text-pastel-purple/80' : 'text-pastel-cyan/80')}`}>
-                                                                ▸
-                                                            </span>
-                                                            {b}
-                                                        </li>
-                                                    ))}
-                                                </motion.ul>
+function MoreProjectRow({ project, index, isLast }) {
+    return (
+        <motion.a
+            href={project.github}
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-30px' }}
+            transition={{ duration: 0.5, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+            className={`group grid sm:grid-cols-[240px_1fr_auto] items-baseline gap-x-8 gap-y-1 py-5 ${!isLast ? 'hairline' : ''} transition-colors duration-300 hover:bg-white/[0.015] -mx-4 px-4 rounded-lg`}
+        >
+            <span className="font-display font-semibold text-[15px] text-text-primary group-hover:text-accent transition-colors">
+                {project.name}
+            </span>
+            <span className="text-[13px] text-text-tertiary leading-relaxed">
+                {project.description}
+            </span>
+            <span className="flex items-center gap-4 justify-self-end">
+                <span className="flex items-center gap-1.5">
+                    <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: languageColors[project.language] || '#00d4ff' }}
+                    />
+                    <span className="font-mono text-[10.5px] text-text-tertiary tracking-wide">
+                        {project.language}
+                    </span>
+                </span>
+                <ArrowUpRight
+                    size={14}
+                    className="text-text-muted group-hover:text-accent transition-all duration-300 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+            </span>
+        </motion.a>
+    )
+}
 
-                                                {/* Tags */}
-                                                <motion.div
-                                                    initial={{ y: 10, opacity: 0 }}
-                                                    animate={{ y: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.15 }}
-                                                    className="flex flex-wrap gap-2"
-                                                >
-                                                    {project.tags.map(tag => (
-                                                        <span
-                                                            key={tag}
-                                                            className={`
-                                                                text-[11px] font-display tracking-wider px-2.5 py-1 rounded-full border
-                                                                ${isDark
-                                                                    ? isP
-                                                                        ? 'border-neon-pink/15 text-neon-pink/60 bg-neon-pink/5'
-                                                                        : 'border-neon-cyan/15 text-neon-cyan/60 bg-neon-cyan/5'
-                                                                    : isP
-                                                                        ? 'border-pastel-purple/25 text-pastel-purple/70 bg-pastel-purple/5'
-                                                                        : 'border-pastel-cyan/25 text-pastel-cyan/70 bg-pastel-cyan/5'
-                                                                }
-                                                            `}
-                                                        >
-                                                            {tag}
-                                                        </span>
-                                                    ))}
-                                                </motion.div>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        )
-                    })}
+/* ───────────────────────────────────────────
+   Projects Section
+   ─────────────────────────────────────────── */
+export default function Projects() {
+    return (
+        <section id="projects" className="relative py-28 sm:py-36">
+            <div className="content-container">
+                {/* Header */}
+                <motion.div {...fadeUp} className="mb-8">
+                    <p className="section-label">Projects</p>
+                    <h2 className="section-title mb-4">
+                        Things I've<br />
+                        <span className="serif-accent">built.</span>
+                    </h2>
+                    <p className="font-body text-text-tertiary text-sm max-w-lg">
+                        Production-grade applications — from enterprise SaaS to AI-powered
+                        real-time platforms.
+                    </p>
+                </motion.div>
+
+                {/* Featured — editorial rows separated by hairlines */}
+                <div className="divide-y divide-white/[0.06]">
+                    {projects.map((project, i) => (
+                        <ProjectRow key={project.id} project={project} index={i} />
+                    ))}
+                </div>
+
+                {/* More projects */}
+                <motion.div
+                    {...fadeUp}
+                    className="mt-20 mb-4 flex items-baseline gap-4"
+                >
+                    <h3 className="font-heading text-xl font-bold text-text-primary whitespace-nowrap">
+                        More on <span className="serif-accent">GitHub</span>
+                    </h3>
+                    <div className="h-px flex-1 bg-white/[0.07] self-center" />
+                    <a
+                        href="https://github.com/zacktiger?tab=repositories"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-mono text-[11px] tracking-wider"
+                    >
+                        View all
+                        <ArrowUpRight size={12} />
+                    </a>
+                </motion.div>
+
+                <div className="border-t border-white/[0.07]">
+                    {moreProjects.map((project, i) => (
+                        <MoreProjectRow
+                            key={project.name}
+                            project={project}
+                            index={i}
+                            isLast={i === moreProjects.length - 1}
+                        />
+                    ))}
                 </div>
             </div>
         </section>

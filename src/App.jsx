@@ -1,39 +1,50 @@
-import { ThemeProvider, useTheme } from './context/ThemeContext'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
-import TimelineContent from './components/TimelineContent'
+import About from './components/About'
+import Skills from './components/Skills'
+import Projects from './components/Projects'
+import GitHubActivity from './components/GitHubActivity'
+import Contact from './components/Contact'
 import Footer from './components/Footer'
 import CustomCursor from './components/CustomCursor'
+import { lazy, Suspense } from 'react'
+import ScrollProgress from './components/ScrollProgress'
+
+// three.js is heavy — load the 3D floaters in their own chunk after first paint
+const PixelModels = lazy(() => import('./components/PixelModels'))
 import BackgroundMusic from './components/BackgroundMusic'
+import EasterEgg from './components/EasterEgg'
+import TechMarquee from './components/TechMarquee'
 
-function AppContent() {
-    const { isDark } = useTheme()
-
-    return (
-        <div className={isDark ? 'dark' : 'light'}>
-            <div
-                className={`
-                    min-h-screen transition-colors duration-500
-                    ${isDark ? 'bg-grid-dark text-white' : 'bg-grid-light text-gray-900'}
-                `}
-            >
-                <CustomCursor />
-                <Navbar />
-                <main>
-                    <Hero />
-                    <TimelineContent />
-                </main>
-                <Footer />
-                <BackgroundMusic />
-            </div>
-        </div>
-    )
+function Divider() {
+    return <div className="section-divider" />
 }
 
 export default function App() {
     return (
-        <ThemeProvider>
-            <AppContent />
-        </ThemeProvider>
+        <div className="grain-overlay min-h-screen bg-bg text-text-primary">
+            <CustomCursor />
+            <ScrollProgress />
+            <Suspense fallback={null}>
+                <PixelModels />
+            </Suspense>
+            <Navbar />
+            <main className="relative z-10">
+                <Hero />
+                <TechMarquee />
+                <About />
+                <Divider />
+                <Skills />
+                <Divider />
+                <Projects />
+                <Divider />
+                <GitHubActivity />
+                <Divider />
+                <Contact />
+            </main>
+            <Footer />
+            <BackgroundMusic />
+            <EasterEgg />
+        </div>
     )
 }

@@ -1,117 +1,84 @@
 import { motion } from 'framer-motion'
-import { Mail, Phone, Linkedin, Github, Send } from 'lucide-react'
-import { useTheme } from '../context/ThemeContext'
-import Card from './Card'
-import SectionTitle from './SectionTitle'
+import { ArrowUpRight, FileText } from 'lucide-react'
+import { contactInfo } from '../data/portfolioData'
+
+const fadeUp = {
+    initial: { opacity: 0, y: 30 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-80px' },
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+}
 
 export default function Contact() {
-    const { isDark } = useTheme()
-
-    const contactInfo = [
-        {
-            icon: Mail,
-            label: 'Email',
-            value: 'kshitijbachhav005@gmail.com',
-            href: 'mailto:kshitijbachhav005@gmail.com',
-        },
-        {
-            icon: Phone,
-            label: 'Phone',
-            value: '+91-9322391752',
-            href: 'tel:+919322391752',
-        },
-        {
-            icon: Linkedin,
-            label: 'LinkedIn',
-            value: 'KshitijBachhav',
-            href: 'www.linkedin.com/in/kshitij-bachhav-789a59213',
-        },
-        {
-            icon: Github,
-            label: 'GitHub',
-            value: 'KshitijBachhav',
-            href: 'https://github.com/zacktiger',
-        },
-    ]
-
     return (
-        <section id="contact" className="relative py-32 lg:py-40 px-6">
-            <div className="max-w-4xl mx-auto">
-                <SectionTitle subtitle="Let's Connect">
-                    CONTACT
-                </SectionTitle>
+        <section id="contact" className="relative py-32 sm:py-44">
+            <div className="content-container">
+                {/* Header */}
+                <motion.div {...fadeUp} className="mb-14">
+                    <p className="section-label">Contact</p>
+                    <h2 className="section-title">
+                        Let's work<br />
+                        <span className="serif-accent">together.</span>
+                    </h2>
+                </motion.div>
 
-                <Card className="" delay={0.1}>
-                    <div className="text-center mb-10">
-                        <p className={`font-display text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Interested in working together? Have a question? Feel free to reach out!
-                        </p>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-6">
-                        {contactInfo.map((info, index) => {
-                            const Icon = info.icon
-
-                            return (
-                                <motion.a
-                                    key={info.label}
-                                    href={info.href}
-                                    target={info.href.startsWith('http') ? '_blank' : undefined}
-                                    rel={info.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: 0.2 + index * 0.1 }}
-                                    whileHover={{ scale: 1.03 }}
-                                    className={`
-                    flex items-center gap-4 p-5 rounded-xl border transition-all duration-300
-                    ${isDark
-                                            ? 'border-neon-cyan/15 bg-dark-surface/50 hover:border-neon-cyan/50 hover:shadow-glow-cyan'
-                                            : 'border-pastel-cyan/20 bg-light-surface/50 hover:border-pastel-cyan/50'
-                                        }
-                  `}
-                                >
-                                    <div
-                                        className={`
-                      p-3 rounded-xl
-                      ${isDark ? 'bg-neon-cyan/5 border border-neon-cyan/20' : 'bg-pastel-cyan/10 border border-pastel-cyan/20'}
-                    `}
-                                    >
-                                        <Icon size={20} className={isDark ? 'text-neon-cyan' : 'text-pastel-cyan'} />
-                                    </div>
-                                    <div>
-                                        <p className={`text-xs font-display tracking-widest uppercase ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                                            {info.label}
-                                        </p>
-                                        <p className={`font-display text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-                                            {info.value}
-                                        </p>
-                                    </div>
-                                </motion.a>
-                            )
-                        })}
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="mt-10 text-center">
-                        <motion.a
-                            href="mailto:kshitijbachhav005@gmail.com"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.98 }}
-                            className={`
-                inline-flex items-center gap-2 px-8 py-3 rounded-xl font-display font-semibold text-sm tracking-wider
-                transition-all duration-300
-                ${isDark
-                                    ? 'bg-neon-cyan/10 border border-neon-cyan/40 text-neon-cyan hover:bg-neon-cyan/20 hover:shadow-glow-cyan'
-                                    : 'bg-pastel-cyan/10 border border-pastel-cyan/40 text-pastel-cyan hover:bg-pastel-cyan/20'
-                                }
-              `}
+                {/* Giant mailto */}
+                <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }} className="mb-16">
+                    <p className="font-body text-text-tertiary text-sm max-w-md mb-8">
+                        Open to internships, collaborations, and interesting engineering
+                        challenges. The fastest way to reach me:
+                    </p>
+                    <a
+                        href={`mailto:${contactInfo.email}`}
+                        className="group inline-block"
+                    >
+                        <span
+                            className="font-display font-medium text-text-primary transition-colors duration-300 group-hover:text-accent break-all"
+                            style={{ fontSize: 'clamp(1.4rem, 3.6vw, 3rem)', letterSpacing: '-0.02em' }}
                         >
-                            <Send size={16} />
-                            SEND A MESSAGE
-                        </motion.a>
-                    </div>
-                </Card>
+                            {contactInfo.email}
+                        </span>
+                        <span className="block h-[2px] mt-3 bg-white/15 relative overflow-hidden">
+                            <span className="absolute inset-y-0 left-0 w-full bg-accent origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" />
+                        </span>
+                    </a>
+                </motion.div>
+
+                {/* Inline links */}
+                <motion.div
+                    {...fadeUp}
+                    transition={{ ...fadeUp.transition, delay: 0.2 }}
+                    className="flex flex-wrap items-center gap-x-10 gap-y-5"
+                >
+                    <a
+                        href={contactInfo.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium"
+                    >
+                        GitHub
+                        <ArrowUpRight size={13} />
+                    </a>
+                    <a
+                        href={contactInfo.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium"
+                    >
+                        LinkedIn
+                        <ArrowUpRight size={13} />
+                    </a>
+                    <a
+                        href="/resume.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium text-accent"
+                    >
+                        <FileText size={14} />
+                        Resume
+                        <ArrowUpRight size={13} />
+                    </a>
+                </motion.div>
             </div>
         </section>
     )
