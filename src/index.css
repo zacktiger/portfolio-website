@@ -26,6 +26,7 @@
   --font-body: 'Inter', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Instrument Serif', Georgia, serif;
 
   /* ── Shadows ── */
   --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.15), 0 0 60px rgba(0, 212, 255, 0.05);
@@ -149,11 +150,72 @@ h1, h2, h3, h4, h5, h6 {
 
 .section-title {
   font-family: var(--font-heading);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(2.5rem, 5.5vw, 4.25rem);
   font-weight: 700;
   color: var(--color-text-primary);
-  line-height: 1.15;
+  line-height: 1.08;
   letter-spacing: -0.03em;
+}
+
+/* Serif italic accent word inside headings */
+.serif-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--color-accent);
+}
+
+/* Ghost outline numerals (01 / 02 / 03) */
+.ghost-num {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: clamp(3.5rem, 8vw, 6.5rem);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.1);
+  user-select: none;
+}
+
+/* Animated underline text link */
+.link-underline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 2px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform-origin: right;
+  transform: scaleX(0.35);
+  opacity: 0.4;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
+
+.link-underline:hover {
+  color: var(--color-accent);
+}
+
+.link-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+  opacity: 1;
+}
+
+/* Hairline row divider */
+.hairline {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 /* ═══════════════════════════════════════════
@@ -264,20 +326,67 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ═══════════════════════════════════════════
-   PROJECT IMAGE HOVER
+   PROJECT VISUAL — editorial tilted screenshot
    ═══════════════════════════════════════════ */
 
-.project-image-wrapper {
+.project-visual {
+  position: relative;
+  border-radius: 14px;
   overflow: hidden;
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 0 40px rgba(0, 212, 255, 0.06);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.7s ease,
+              border-color 0.5s ease;
 }
 
-.project-image {
-  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+.project-row:nth-child(odd) .project-visual { transform: rotate(-1.6deg); }
+.project-row:nth-child(even) .project-visual { transform: rotate(1.6deg); }
+
+.project-row:hover .project-visual {
+  transform: rotate(0deg) scale(1.015);
+  border-color: rgba(0, 212, 255, 0.25);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.65),
+    0 0 60px rgba(0, 212, 255, 0.12);
 }
 
-.project-card-v2:hover .project-image {
-  transform: scale(1.04);
+.project-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* ═══════════════════════════════════════════
+   TECH MARQUEE
+   ═══════════════════════════════════════════ */
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+}
+
+.marquee-track {
+  display: inline-flex;
+  align-items: center;
+  animation: marquee-scroll 36s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
 }
 
 /* ═══════════════════════════════════════════

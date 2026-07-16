@@ -1,8 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { GraduationCap, MapPin, Calendar, Trophy, Zap } from 'lucide-react'
+import { GraduationCap, MapPin, Calendar, Trophy } from 'lucide-react'
 import { achievements } from '../data/portfolioData'
-import SpotlightCard from './SpotlightCard'
 
 /* ───────────────────────────────────────────
    Animated Counter
@@ -39,11 +38,12 @@ function AnimatedCounter({ value, suffix = '', label }) {
     }, [value, hasAnimated])
 
     return (
-        <div ref={ref} className="text-center">
-            <div className="font-heading text-3xl sm:text-4xl font-800 text-accent mb-2" style={{ fontWeight: 800 }}>
-                {count}{suffix}
+        <div ref={ref}>
+            <div className="font-heading text-4xl sm:text-5xl font-800 text-text-primary" style={{ fontWeight: 800 }}>
+                {count}
+                <span className="serif-accent text-3xl sm:text-4xl ml-0.5">{suffix}</span>
             </div>
-            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-text-tertiary">
+            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-text-tertiary mt-2">
                 {label}
             </div>
         </div>
@@ -51,7 +51,7 @@ function AnimatedCounter({ value, suffix = '', label }) {
 }
 
 /* ───────────────────────────────────────────
-   About Section
+   About Section — editorial, no boxes
    ─────────────────────────────────────────── */
 const fadeUp = {
     initial: { opacity: 0, y: 30 },
@@ -62,116 +62,97 @@ const fadeUp = {
 
 export default function About() {
     return (
-        <section id="about" className="relative py-24 sm:py-32">
+        <section id="about" className="relative py-28 sm:py-36">
             <div className="content-container">
                 {/* Header */}
-                <motion.div {...fadeUp} className="mb-12">
+                <motion.div {...fadeUp} className="mb-14">
                     <p className="section-label">About</p>
                     <h2 className="section-title">
                         Building systems that<br />
-                        <span className="text-accent">scale and ship.</span>
+                        <span className="serif-accent">scale and ship.</span>
                     </h2>
                 </motion.div>
 
-                {/* Stats row */}
-                <motion.div
+                {/* Editorial statement */}
+                <motion.p
                     {...fadeUp}
                     transition={{ ...fadeUp.transition, delay: 0.1 }}
-                    className="grid grid-cols-3 gap-4 sm:gap-5 mb-10"
+                    className="font-body font-light text-xl sm:text-2xl leading-[1.6] text-text-secondary max-w-3xl mb-16"
                 >
-                    <SpotlightCard className="p-5 sm:p-6">
-                        <AnimatedCounter value={3} suffix="+" label="Projects Built" />
-                    </SpotlightCard>
-                    <SpotlightCard className="p-5 sm:p-6">
+                    I'm a Software Development Engineer specializing in{' '}
+                    <span className="text-text-primary font-normal">Full Stack and Backend development</span>{' '}
+                    — from multi-tenant SaaS platforms with enterprise authentication to
+                    real-time prediction markets powered by LLM pipelines. I care about
+                    clean architecture, robust auth flows, and interfaces that are as{' '}
+                    <span className="serif-accent">beautiful</span> as they are functional.
+                </motion.p>
+
+                {/* Stats — inline hairline row */}
+                <motion.div
+                    {...fadeUp}
+                    transition={{ ...fadeUp.transition, delay: 0.15 }}
+                    className="grid grid-cols-3 mb-20 border-y border-white/[0.07]"
+                >
+                    <div className="py-8 pr-6 border-r border-white/[0.07]">
+                        <AnimatedCounter value={9} suffix="+" label="Projects Built" />
+                    </div>
+                    <div className="py-8 px-6 sm:px-10 border-r border-white/[0.07]">
                         <AnimatedCounter value={200} suffix="+" label="DSA Problems" />
-                    </SpotlightCard>
-                    <SpotlightCard className="p-5 sm:p-6">
+                    </div>
+                    <div className="py-8 pl-6 sm:pl-10">
                         <AnimatedCounter value={1} suffix="st" label="Place — IIT BHU" />
-                    </SpotlightCard>
+                    </div>
                 </motion.div>
 
-                {/* Two-column cards */}
-                <div className="grid lg:grid-cols-2 gap-5">
-                    {/* Bio */}
-                    <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.15 }}>
-                        <SpotlightCard className="p-7 sm:p-8 h-full">
-                            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent mb-4">
-                                Background
-                            </p>
-                            <p className="font-body text-sm sm:text-[15px] leading-[1.8] text-text-secondary mb-4">
-                                I'm a Software Development Engineer specializing in{' '}
-                                <span className="text-text-primary font-medium">Full Stack and Backend development</span>.
-                                Currently pursuing B.Tech in IoT at IIIT Nagpur, I build production-ready
-                                systems that scale — from multi-tenant SaaS platforms with enterprise
-                                authentication to real-time prediction markets powered by LLM pipelines.
-                            </p>
-                            <p className="font-body text-sm sm:text-[15px] leading-[1.8] text-text-tertiary">
-                                My stack spans{' '}
-                                <span className="text-text-secondary">React, Node.js, FastAPI, PostgreSQL, and Docker</span>.
-                                I care about clean architecture, robust auth flows, and interfaces that
-                                are as beautiful as they are functional.
-                            </p>
-                        </SpotlightCard>
+                {/* Education + Achievements — two clean columns */}
+                <div className="grid lg:grid-cols-2 gap-x-20 gap-y-12">
+                    <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }}>
+                        <div className="flex items-center gap-2 mb-6">
+                            <GraduationCap size={14} className="text-accent" />
+                            <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent">
+                                Education
+                            </span>
+                        </div>
+                        <h4 className="font-heading font-bold text-xl text-text-primary mb-1">
+                            IIIT Nagpur
+                        </h4>
+                        <p className="font-body text-[15px] text-text-secondary mb-3">
+                            B.Tech in Internet of Things (IoT)
+                        </p>
+                        <div className="flex flex-wrap items-center gap-4">
+                            <span className="flex items-center gap-1.5 font-mono text-xs text-text-tertiary">
+                                <MapPin size={12} /> Nagpur, MH
+                            </span>
+                            <span className="flex items-center gap-1.5 font-mono text-xs text-text-tertiary">
+                                <Calendar size={12} /> 2023 – 2027
+                            </span>
+                        </div>
+                        <p className="font-body text-sm leading-[1.8] text-text-tertiary mt-5 max-w-md">
+                            My stack spans{' '}
+                            <span className="text-text-secondary">React, Node.js, FastAPI, PostgreSQL, and Docker</span>{' '}
+                            — with fundamentals in DSA, OS, networks, and database systems.
+                        </p>
                     </motion.div>
 
-                    {/* Education + Achievements */}
-                    <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.2 }}>
-                        <SpotlightCard className="p-7 sm:p-8 h-full">
-                            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent mb-4">
-                                Education
-                            </p>
-
-                            <div className="mb-5">
-                                <div className="flex items-start gap-3.5 mb-2.5">
-                                    <div className="p-2 rounded-lg bg-accent-dim border border-accent-mid/50">
-                                        <GraduationCap size={16} className="text-accent" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-display font-bold text-base text-text-primary">
-                                            IIIT Nagpur
-                                        </h4>
-                                        <p className="font-body text-sm text-text-secondary">
-                                            B.Tech in Internet of Things (IoT)
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3 ml-[44px]">
-                                    <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
-                                        <MapPin size={12} /> Nagpur, MH
+                    <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.18 }}>
+                        <div className="flex items-center gap-2 mb-6">
+                            <Trophy size={13} className="text-accent" />
+                            <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent">
+                                Achievements
+                            </span>
+                        </div>
+                        <div>
+                            {achievements.map((ach, i) => (
+                                <div key={i} className={`py-4 ${i === 0 ? 'pt-0' : ''} ${i < achievements.length - 1 ? 'hairline' : ''}`}>
+                                    <span className="font-display font-semibold text-base text-text-primary">
+                                        {ach.title}
                                     </span>
-                                    <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
-                                        <Calendar size={12} /> 2023 – 2027
-                                    </span>
+                                    <p className="text-sm text-text-tertiary mt-1 leading-relaxed">
+                                        {ach.description}
+                                    </p>
                                 </div>
-                            </div>
-
-                            <div className="h-px bg-border my-5" />
-
-                            {/* Achievements */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Trophy size={13} className="text-accent" />
-                                    <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent">
-                                        Achievements
-                                    </span>
-                                </div>
-                                <div className="space-y-3.5">
-                                    {achievements.map((ach, i) => (
-                                        <div key={i} className="flex items-start gap-2.5">
-                                            <Zap size={12} className="mt-1 flex-shrink-0 text-accent" />
-                                            <div>
-                                                <span className="text-sm font-display font-semibold text-text-primary">
-                                                    {ach.title}
-                                                </span>
-                                                <p className="text-xs text-text-tertiary mt-0.5 leading-relaxed">
-                                                    {ach.description}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </SpotlightCard>
+                            ))}
+                        </div>
                     </motion.div>
                 </div>
             </div>

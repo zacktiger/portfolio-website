@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { motion, useMotionValue, useSpring } from 'framer-motion'
-import { Github, Linkedin, Mail, ChevronDown } from 'lucide-react'
+import { Github, Linkedin, Mail, FileText, ArrowUpRight } from 'lucide-react'
 
 /* ───────────────────────────────────────────
    Typewriter — cycles through roles
@@ -292,6 +292,29 @@ export default function Hero() {
                     and interactive algorithm visualizers.
                 </motion.p>
 
+                {/* CTA row */}
+                <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.4, duration: 0.6 }}
+                    className="flex items-center justify-center gap-4 mb-8"
+                >
+                    <a href="#projects" className="cta-button" style={{ padding: '11px 24px', fontSize: '13px' }}>
+                        View Work
+                        <ArrowUpRight size={14} />
+                    </a>
+                    <a
+                        href="/resume.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cta-button-ghost"
+                        style={{ padding: '11px 24px', fontSize: '13px' }}
+                    >
+                        <FileText size={14} />
+                        Resume
+                    </a>
+                </motion.div>
+
                 {/* Social row */}
                 <motion.div
                     initial={{ opacity: 0, y: 15 }}
@@ -327,22 +350,6 @@ export default function Hero() {
                     ))}
                 </motion.div>
 
-                {/* Scroll indicator */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 2.2 }}
-                    className="absolute bottom-10 left-1/2 -translate-x-1/2"
-                >
-                    <motion.a
-                        href="#about"
-                        animate={{ y: [0, 6, 0] }}
-                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                        className="text-text-muted hover:text-accent transition-colors"
-                    >
-                        <ChevronDown size={24} />
-                    </motion.a>
-                </motion.div>
             </div>
         </section>
     )

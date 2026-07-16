@@ -1,4 +1,4 @@
-import { Github, Linkedin, Mail } from 'lucide-react'
+import { Github, Linkedin, Mail, FileText } from 'lucide-react'
 
 export default function Footer() {
     const quickLinks = ['Home', 'About', 'Skills', 'Projects', 'GitHub', 'Contact']
@@ -49,6 +49,15 @@ export default function Footer() {
                             >
                                 <Mail size={13} />
                                 <span className="truncate">kshitijbachhav005@gmail.com</span>
+                            </a>
+                            <a
+                                href="/resume.html"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2.5 text-sm text-text-muted hover:text-accent transition-colors"
+                            >
+                                <FileText size={13} />
+                                Resume
                             </a>
                             <div className="flex gap-2 mt-2">
                                 {[

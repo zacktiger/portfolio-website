@@ -12,6 +12,10 @@ A single-page personal portfolio site (Kshitij Bachhav) built with React 19 + Vi
 - `npm run build` — production build to `dist/`
 - `npm run preview` — serve the production build locally
 
+## Pages
+
+Two Vite entries (see `build.rollupOptions.input` in `vite.config.js`): the main site (`index.html` → `src/main.jsx`) and a standalone resume page (`resume.html` → `src/resume.jsx` → `ResumePage.jsx`). The resume is typeset from `portfolioData.js` and has a print stylesheet (`src/components/resume.css`) — "Download PDF" is just `window.print()`. The main site hides the native cursor globally for `CustomCursor`; `resume.css` restores it on the resume page, so any new page without `CustomCursor` needs the same override.
+
 There is no lint script, no test runner, and no TypeScript configured in this repo.
 
 ## Architecture

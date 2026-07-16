@@ -14,6 +14,7 @@ import ScrollProgress from './components/ScrollProgress'
 const PixelModels = lazy(() => import('./components/PixelModels'))
 import BackgroundMusic from './components/BackgroundMusic'
 import EasterEgg from './components/EasterEgg'
+import TechMarquee from './components/TechMarquee'
 
 function Divider() {
     return <div className="section-divider" />
@@ -30,7 +31,7 @@ export default function App() {
             <Navbar />
             <main className="relative z-10">
                 <Hero />
-                <Divider />
+                <TechMarquee />
                 <About />
                 <Divider />
                 <Skills />

@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
-import { Mail, Linkedin, Github, Send, ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, FileText } from 'lucide-react'
 import { contactInfo } from '../data/portfolioData'
-import SpotlightCard from './SpotlightCard'
 
 const fadeUp = {
     initial: { opacity: 0, y: 30 },
@@ -10,74 +9,74 @@ const fadeUp = {
     transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
 }
 
-const items = [
-    { icon: Mail, label: 'Email', value: contactInfo.email, href: `mailto:${contactInfo.email}` },
-    { icon: Linkedin, label: 'LinkedIn', value: 'Kshitij Bachhav', href: contactInfo.linkedin },
-    { icon: Github, label: 'GitHub', value: '@zacktiger', href: contactInfo.github },
-]
-
 export default function Contact() {
     return (
-        <section id="contact" className="relative py-24 sm:py-32">
+        <section id="contact" className="relative py-32 sm:py-44">
             <div className="content-container">
                 {/* Header */}
-                <motion.div {...fadeUp} className="mb-12">
+                <motion.div {...fadeUp} className="mb-14">
                     <p className="section-label">Contact</p>
-                    <h2 className="section-title mb-3">
+                    <h2 className="section-title">
                         Let's work<br />
-                        <span className="text-accent">together.</span>
+                        <span className="serif-accent">together.</span>
                     </h2>
-                    <p className="font-body text-text-tertiary text-sm max-w-md">
-                        Open to internships, collaborations, and interesting engineering challenges.
-                    </p>
                 </motion.div>
 
-                {/* Contact cards */}
-                <div className="grid sm:grid-cols-3 gap-4 mb-10">
-                    {items.map((item, i) => {
-                        const Icon = item.icon
-                        return (
-                            <motion.a
-                                key={item.label}
-                                href={item.href}
-                                target={item.label !== 'Email' ? '_blank' : undefined}
-                                rel="noopener noreferrer"
-                                {...fadeUp}
-                                transition={{ ...fadeUp.transition, delay: 0.1 + i * 0.06 }}
-                                className="block group"
-                            >
-                                <SpotlightCard className="p-5 text-center h-full" glowSize={300}>
-                                    <div className="inline-flex p-2.5 rounded-lg bg-accent-dim border border-accent-mid/40 mb-3 group-hover:bg-accent-mid/30 transition-colors">
-                                        <Icon size={18} className="text-accent" />
-                                    </div>
-                                    <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-text-muted mb-1">
-                                        {item.label}
-                                    </p>
-                                    <p className="text-[13px] font-display font-medium text-text-primary truncate">
-                                        {item.value}
-                                    </p>
-                                    <ArrowUpRight
-                                        size={13}
-                                        className="mx-auto mt-2.5 text-text-muted opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-300 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                                    />
-                                </SpotlightCard>
-                            </motion.a>
-                        )
-                    })}
-                </div>
-
-                {/* CTA */}
-                <motion.div
-                    {...fadeUp}
-                    transition={{ ...fadeUp.transition, delay: 0.3 }}
-                    className="text-center"
-                >
+                {/* Giant mailto */}
+                <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }} className="mb-16">
+                    <p className="font-body text-text-tertiary text-sm max-w-md mb-8">
+                        Open to internships, collaborations, and interesting engineering
+                        challenges. The fastest way to reach me:
+                    </p>
                     <a
                         href={`mailto:${contactInfo.email}`}
-                        className="cta-button"
+                        className="group inline-block"
                     >
-                        <Send size={15} />
-                        Send a Message
+                        <span
+                            className="font-display font-medium text-text-primary transition-colors duration-300 group-hover:text-accent break-all"
+                            style={{ fontSize: 'clamp(1.4rem, 3.6vw, 3rem)', letterSpacing: '-0.02em' }}
+                        >
+                            {contactInfo.email}
+                        </span>
+                        <span className="block h-[2px] mt-3 bg-white/15 relative overflow-hidden">
+                            <span className="absolute inset-y-0 left-0 w-full bg-accent origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" />
+                        </span>
+                    </a>
+                </motion.div>
+
+                {/* Inline links */}
+                <motion.div
+                    {...fadeUp}
+                    transition={{ ...fadeUp.transition, delay: 0.2 }}
+                    className="flex flex-wrap items-center gap-x-10 gap-y-5"
+                >
+                    <a
+                        href={contactInfo.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium"
+                    >
+                        GitHub
+                        <ArrowUpRight size={13} />
+                    </a>
+                    <a
+                        href={contactInfo.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium"
+                    >
+                        LinkedIn
+                        <ArrowUpRight size={13} />
+                    </a>
+                    <a
+                        href="/resume.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium text-accent"
+                    >
+                        <FileText size={14} />
+                        Resume
+                        <ArrowUpRight size={13} />
                     </a>
                 </motion.div>
             </div>

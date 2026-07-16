@@ -1,20 +1,26 @@
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Github, Calendar, ArrowUpRight, Folder } from 'lucide-react'
+import { Github, ArrowUpRight } from 'lucide-react'
 import { projects, moreProjects } from '../data/portfolioData'
-import SpotlightCard from './SpotlightCard'
+
+const fadeUp = {
+    initial: { opacity: 0, y: 30 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-80px' },
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+}
 
 /* ───────────────────────────────────────────
-   Project Card
+   Featured Project — editorial row
    ─────────────────────────────────────────── */
-function ProjectCard({ project, index }) {
-    const Icon = project.icon
-    const cardRef = useRef(null)
+function ProjectRow({ project, index }) {
+    const rowRef = useRef(null)
     const [isHit, setIsHit] = useState(false)
+    const imageLeft = index % 2 === 1
 
     // React to laser shots from CustomCursor
     useEffect(() => {
-        const el = cardRef.current
+        const el = rowRef.current
         if (!el) return
         const onHit = () => {
             setIsHit(true)
@@ -25,116 +31,95 @@ function ProjectCard({ project, index }) {
     }, [])
 
     return (
-        <motion.div
-            ref={cardRef}
+        <motion.article
+            ref={rowRef}
             data-project-id={project.id}
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.7, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className={isHit ? 'laser-flash' : ''}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className={`project-row group relative grid lg:grid-cols-12 gap-8 lg:gap-12 items-center py-16 sm:py-20 ${isHit ? 'laser-flash' : ''}`}
         >
-            <SpotlightCard className="project-card-v2" glowSize={500} glowAlpha={0.04}>
-                {/* Stack vertically — image on top, content below */}
-                <div className="flex flex-col">
-                    {/* Image */}
-                    <div className="project-image-wrapper aspect-[16/9] relative">
-                        <img
-                            src={project.image}
-                            alt={`${project.title} preview`}
-                            className="project-image w-full h-full object-cover object-top"
-                            loading="lazy"
-                        />
-                        {/* Bottom fade */}
-                        <div
-                            className="absolute inset-0"
-                            style={{
-                                background: 'linear-gradient(to bottom, transparent 40%, #161616 100%)',
-                            }}
-                        />
-                        {/* Date badge */}
-                        <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg/60 backdrop-blur-md border border-border text-text-tertiary text-xs font-mono">
-                            <Calendar size={11} />
-                            {project.date}
-                        </div>
+            {/* Visual */}
+            <div className={`lg:col-span-7 ${imageLeft ? 'lg:order-1' : 'lg:order-2'}`}>
+                <a
+                    href={project.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${project.title} on GitHub`}
+                    className="block"
+                >
+                    <div className="project-visual aspect-[16/10]">
+                        <img src={project.image} alt={`${project.title} preview`} loading="lazy" />
                     </div>
+                </a>
+            </div>
 
-                    {/* Content */}
-                    <div className="px-7 sm:px-8 pb-7 sm:pb-8 pt-2">
-                        {/* Title */}
-                        <div className="flex items-start gap-3.5 mb-4">
-                            <div className="p-2 rounded-lg bg-accent-dim border border-accent-mid/40 flex-shrink-0 mt-0.5">
-                                <Icon size={18} className="text-accent" />
-                            </div>
-                            <div>
-                                <h3 className="font-heading text-lg sm:text-xl font-bold text-text-primary mb-0.5" style={{ letterSpacing: '-0.015em' }}>
-                                    {project.title}
-                                </h3>
-                                <p className="font-mono text-[11px] text-text-tertiary tracking-wide">
-                                    {project.subtitle}
-                                </p>
-                            </div>
-                        </div>
+            {/* Text */}
+            <div className={`lg:col-span-5 relative z-10 ${imageLeft ? 'lg:order-2' : 'lg:order-1'}`}>
+                <span className="ghost-num hidden sm:block mb-3" aria-hidden="true" style={{ fontSize: 'clamp(3rem, 5vw, 4.5rem)' }}>
+                    {String(index + 1).padStart(2, '0')}
+                </span>
+                <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent mb-4">
+                    {project.date}
+                </p>
+                <h3
+                    className="font-heading font-bold text-2xl sm:text-3xl text-text-primary mb-4"
+                    style={{ letterSpacing: '-0.02em', lineHeight: 1.15 }}
+                >
+                    {project.title}
+                </h3>
+                <p className="font-body text-[15px] text-text-secondary leading-[1.75] mb-5">
+                    {project.description}
+                </p>
 
-                        {/* Description */}
-                        <p className="font-body text-sm text-text-secondary leading-relaxed mb-4">
-                            {project.description}
-                        </p>
+                <ul className="space-y-2.5 mb-6">
+                    {project.bullets.slice(0, 2).map((bullet, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                            <span className="w-1 h-1 rounded-full bg-accent mt-[9px] flex-shrink-0" />
+                            <span className="text-[13.5px] text-text-tertiary leading-[1.7]">
+                                {bullet}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
 
-                        {/* Bullets — only show first 3 */}
-                        <ul className="space-y-2 mb-5">
-                            {project.bullets.slice(0, 3).map((bullet, i) => (
-                                <li key={i} className="flex items-start gap-2.5">
-                                    <span className="w-1 h-1 rounded-full bg-accent mt-2 flex-shrink-0" />
-                                    <span className="text-[13px] text-text-tertiary leading-relaxed">
-                                        {bullet}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
+                {/* Tags as mono text */}
+                <p className="font-mono text-[11px] tracking-wide text-text-muted mb-7">
+                    {project.tags.join('  /  ')}
+                </p>
 
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-1.5 mb-5">
-                            {project.tags.map(tag => (
-                                <span key={tag} className="tag-chip">{tag}</span>
-                            ))}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-3">
-                            <a
-                                href={project.github}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="cta-button-ghost"
-                                style={{ padding: '8px 18px', fontSize: '12px' }}
-                            >
-                                <Github size={14} />
-                                Code
-                            </a>
-                            {project.live && (
-                                <a
-                                    href={project.live}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="cta-button"
-                                    style={{ padding: '8px 18px', fontSize: '12px' }}
-                                >
-                                    <ExternalLink size={14} />
-                                    Live Demo
-                                    <ArrowUpRight size={12} />
-                                </a>
-                            )}
-                        </div>
-                    </div>
+                {/* Text links */}
+                <div className="flex items-center gap-8">
+                    <a
+                        href={project.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-underline font-display text-sm font-medium"
+                    >
+                        <Github size={15} />
+                        Code
+                        <ArrowUpRight size={13} />
+                    </a>
+                    {project.live && (
+                        <a
+                            href={project.live}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="link-underline font-display text-sm font-medium text-accent"
+                        >
+                            Live Demo
+                            <ArrowUpRight size={13} />
+                        </a>
+                    )}
                 </div>
-            </SpotlightCard>
-        </motion.div>
+            </div>
+        </motion.article>
     )
 }
 
 /* ───────────────────────────────────────────
-   Mini Project Card (More Projects grid)
+   More Projects — hairline list rows
    ─────────────────────────────────────────── */
 const languageColors = {
     TypeScript: '#3178c6',
@@ -143,44 +128,39 @@ const languageColors = {
     'C++': '#f34b7d',
 }
 
-function MiniProjectCard({ project, index }) {
+function MoreProjectRow({ project, index, isLast }) {
     return (
         <motion.a
             href={project.github}
             target="_blank"
             rel="noopener noreferrer"
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-40px' }}
+            viewport={{ once: true, margin: '-30px' }}
             transition={{ duration: 0.5, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
-            className="block group h-full"
+            className={`group grid sm:grid-cols-[240px_1fr_auto] items-baseline gap-x-8 gap-y-1 py-5 ${!isLast ? 'hairline' : ''} transition-colors duration-300 hover:bg-white/[0.015] -mx-4 px-4 rounded-lg`}
         >
-            <SpotlightCard className="p-5 h-full" glowSize={300} glowAlpha={0.05}>
-                <div className="flex flex-col h-full">
-                    <div className="flex items-center justify-between mb-3">
-                        <Folder size={18} className="text-accent" strokeWidth={1.6} />
-                        <ArrowUpRight
-                            size={15}
-                            className="text-text-muted group-hover:text-accent transition-all duration-300 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                        />
-                    </div>
-                    <h4 className="font-display font-semibold text-[15px] text-text-primary mb-1.5 group-hover:text-accent transition-colors">
-                        {project.name}
-                    </h4>
-                    <p className="text-[12.5px] text-text-tertiary leading-relaxed mb-4 flex-1">
-                        {project.description}
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                        <span
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ background: languageColors[project.language] || '#00d4ff' }}
-                        />
-                        <span className="font-mono text-[10.5px] text-text-tertiary tracking-wide">
-                            {project.language}
-                        </span>
-                    </div>
-                </div>
-            </SpotlightCard>
+            <span className="font-display font-semibold text-[15px] text-text-primary group-hover:text-accent transition-colors">
+                {project.name}
+            </span>
+            <span className="text-[13px] text-text-tertiary leading-relaxed">
+                {project.description}
+            </span>
+            <span className="flex items-center gap-4 justify-self-end">
+                <span className="flex items-center gap-1.5">
+                    <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: languageColors[project.language] || '#00d4ff' }}
+                    />
+                    <span className="font-mono text-[10.5px] text-text-tertiary tracking-wide">
+                        {project.language}
+                    </span>
+                </span>
+                <ArrowUpRight
+                    size={14}
+                    className="text-text-muted group-hover:text-accent transition-all duration-300 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+            </span>
         </motion.a>
     )
 }
@@ -190,20 +170,14 @@ function MiniProjectCard({ project, index }) {
    ─────────────────────────────────────────── */
 export default function Projects() {
     return (
-        <section id="projects" className="relative py-24 sm:py-32">
+        <section id="projects" className="relative py-28 sm:py-36">
             <div className="content-container">
                 {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: '-80px' }}
-                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                    className="mb-12"
-                >
+                <motion.div {...fadeUp} className="mb-8">
                     <p className="section-label">Projects</p>
-                    <h2 className="section-title mb-3">
+                    <h2 className="section-title mb-4">
                         Things I've<br />
-                        <span className="text-accent">built.</span>
+                        <span className="serif-accent">built.</span>
                     </h2>
                     <p className="font-body text-text-tertiary text-sm max-w-lg">
                         Production-grade applications — from enterprise SaaS to AI-powered
@@ -211,39 +185,41 @@ export default function Projects() {
                     </p>
                 </motion.div>
 
-                {/* Featured project cards */}
-                <div className="space-y-6">
+                {/* Featured — editorial rows separated by hairlines */}
+                <div className="divide-y divide-white/[0.06]">
                     {projects.map((project, i) => (
-                        <ProjectCard key={project.id} project={project} index={i} />
+                        <ProjectRow key={project.id} project={project} index={i} />
                     ))}
                 </div>
 
                 {/* More projects */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: '-60px' }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                    className="mt-16 mb-6 flex items-center gap-4"
+                    {...fadeUp}
+                    className="mt-20 mb-4 flex items-baseline gap-4"
                 >
-                    <h3 className="font-heading text-lg font-bold text-text-primary whitespace-nowrap">
-                        More on <span className="text-accent">GitHub</span>
+                    <h3 className="font-heading text-xl font-bold text-text-primary whitespace-nowrap">
+                        More on <span className="serif-accent">GitHub</span>
                     </h3>
-                    <div className="h-px flex-1 bg-border" />
+                    <div className="h-px flex-1 bg-white/[0.07] self-center" />
                     <a
                         href="https://github.com/zacktiger?tab=repositories"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-[11px] tracking-wider text-text-tertiary hover:text-accent transition-colors whitespace-nowrap flex items-center gap-1.5"
+                        className="link-underline font-mono text-[11px] tracking-wider"
                     >
                         View all
                         <ArrowUpRight size={12} />
                     </a>
                 </motion.div>
 
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="border-t border-white/[0.07]">
                     {moreProjects.map((project, i) => (
-                        <MiniProjectCard key={project.name} project={project} index={i} />
+                        <MoreProjectRow
+                            key={project.name}
+                            project={project}
+                            index={i}
+                            isLast={i === moreProjects.length - 1}
+                        />
                     ))}
                 </div>
             </div>
