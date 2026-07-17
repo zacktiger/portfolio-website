@@ -158,9 +158,6 @@ export default function GitHubActivity() {
         return () => { cancelled = true }
     }, [])
 
-    // Fail silently — a broken third-party API shouldn't leave a hole in the page
-    if (failed) return null
-
     const days = data?.contributions ?? []
     const stats = days.length > 0 ? computeStats(days) : null
 
@@ -181,7 +178,25 @@ export default function GitHubActivity() {
 
                 <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }}>
                     <SpotlightCard className="p-6 sm:p-8" glowSize={500} glowAlpha={0.04}>
-                        {data === null ? (
+                        {failed ? (
+                            /* The nav and footer link to #github, so keep the section
+                               anchored even when the third-party API is down */
+                            <div className="h-32 flex flex-col items-center justify-center gap-4">
+                                <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-text-muted">
+                                    Contribution graph unavailable right now
+                                </span>
+                                <a
+                                    href={contactInfo.github}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="link-underline font-display text-sm font-medium"
+                                >
+                                    <Github size={14} />
+                                    See it live on GitHub
+                                    <ArrowUpRight size={13} />
+                                </a>
+                            </div>
+                        ) : data === null ? (
                             /* Loading skeleton */
                             <div className="h-32 flex items-center justify-center">
                                 <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-text-muted animate-pulse">
