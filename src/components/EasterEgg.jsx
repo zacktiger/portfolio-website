@@ -30,6 +30,13 @@ export default function EasterEgg() {
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [handleKeyDown])
 
+    // the Terminal widget's `play` command opens the game via this event
+    useEffect(() => {
+        const open = () => setIsOpen(true)
+        window.addEventListener('open-retro-game', open)
+        return () => window.removeEventListener('open-retro-game', open)
+    }, [])
+
     return (
         <AnimatePresence>
             {isOpen && (

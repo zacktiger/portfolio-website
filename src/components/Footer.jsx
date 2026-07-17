@@ -86,7 +86,7 @@ export default function Footer() {
                         © {new Date().getFullYear()} Kshitij Bachhav
                     </p>
                     <p className="text-xs font-mono text-text-muted tracking-wider">
-                        type <span className="text-accent">"play"</span> for a surprise
+                        type <span className="text-accent">"play"</span> for a surprise · press <span className="text-accent">/</span> for the terminal
                     </p>
                 </div>
             </div>
