@@ -85,9 +85,13 @@ export default function Footer() {
                     <p className="text-xs font-display text-text-muted">
                         © {new Date().getFullYear()} Kshitij Bachhav
                     </p>
-                    <p className="text-xs font-mono text-text-muted tracking-wider">
+                    <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-easter-egg'))}
+                        className="text-xs font-mono text-text-muted tracking-wider hover:text-text-secondary transition-colors cursor-pointer"
+                    >
                         type <span className="text-accent">"play"</span> for a surprise
-                    </p>
+                    </button>
                 </div>
             </div>
         </footer>
