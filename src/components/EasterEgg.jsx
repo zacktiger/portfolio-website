@@ -34,11 +34,12 @@ export default function EasterEgg() {
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [handleKeyDown])
 
-    // Tap-to-open entry point (footer hint) — the only way in on touch devices
+    // Tap-to-open entry point: the Terminal's `play` command and the footer
+    // hint both fire this event — the only way in on touch devices.
     useEffect(() => {
         const open = () => setIsOpen(true)
-        window.addEventListener('open-easter-egg', open)
-        return () => window.removeEventListener('open-easter-egg', open)
+        window.addEventListener('open-retro-game', open)
+        return () => window.removeEventListener('open-retro-game', open)
     }, [])
 
     return (
