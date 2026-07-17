@@ -1,6 +1,11 @@
-import { ArrowLeft, Download, Mail, Linkedin, Github, MapPin } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, Download, Printer, Mail, Linkedin, Github, MapPin } from 'lucide-react'
 import { skillCategories, projects, achievements, contactInfo } from '../data/portfolioData'
 import './resume.css'
+
+// If you drop a real file in as public/resume.pdf, the toolbar downloads it.
+// Otherwise "Download PDF" falls back to printing this typeset page.
+const PDF_SRC = '/resume.pdf'
 
 function Section({ label, children }) {
     return (
@@ -12,6 +17,22 @@ function Section({ label, children }) {
 }
 
 export default function ResumePage() {
+    // Detect whether a real PDF exists so we don't link to Vite's SPA fallback.
+    const [pdfAvailable, setPdfAvailable] = useState(false)
+
+    useEffect(() => {
+        let cancelled = false
+        fetch(PDF_SRC, { method: 'HEAD' })
+            .then(res => {
+                const type = res.headers.get('content-type') || ''
+                if (!cancelled) setPdfAvailable(res.ok && type.includes('pdf'))
+            })
+            .catch(() => {
+                if (!cancelled) setPdfAvailable(false)
+            })
+        return () => { cancelled = true }
+    }, [])
+
     return (
         <div className="resume-page min-h-screen bg-bg text-text-primary">
             {/* Toolbar — hidden in print */}
@@ -24,14 +45,26 @@ export default function ResumePage() {
                         <ArrowLeft size={15} />
                         Back to portfolio
                     </a>
-                    <button
-                        onClick={() => window.print()}
-                        className="cta-button"
-                        style={{ padding: '9px 20px', fontSize: '13px' }}
-                    >
-                        <Download size={14} />
-                        Download PDF
-                    </button>
+                    {pdfAvailable ? (
+                        <a
+                            href={PDF_SRC}
+                            download
+                            className="cta-button"
+                            style={{ padding: '9px 20px', fontSize: '13px' }}
+                        >
+                            <Download size={14} />
+                            Download PDF
+                        </a>
+                    ) : (
+                        <button
+                            onClick={() => window.print()}
+                            className="cta-button"
+                            style={{ padding: '9px 20px', fontSize: '13px' }}
+                        >
+                            <Printer size={14} />
+                            Print / Save PDF
+                        </button>
+                    )}
                 </div>
             </div>
 
