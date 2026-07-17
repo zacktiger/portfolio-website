@@ -86,7 +86,14 @@ export default function Footer() {
                         © {new Date().getFullYear()} Kshitij Bachhav
                     </p>
                     <p className="text-xs font-mono text-text-muted tracking-wider">
-                        type <span className="text-accent">"play"</span> for a surprise · press <span className="text-accent">/</span> for the terminal
+                        <button
+                            type="button"
+                            onClick={() => window.dispatchEvent(new Event('open-retro-game'))}
+                            className="tracking-wider hover:text-text-secondary transition-colors cursor-pointer"
+                        >
+                            type <span className="text-accent">"play"</span> for a surprise
+                        </button>
+                        {' · press '}<span className="text-accent">/</span> for the terminal
                     </p>
                 </div>
             </div>
