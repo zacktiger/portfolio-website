@@ -339,7 +339,7 @@ export default function Hero() {
                                     target={label !== 'Email' ? '_blank' : undefined}
                                     rel="noopener noreferrer"
                                     aria-label={label}
-                                    className="block p-3 rounded-xl border border-border text-text-tertiary
+                                    className="block p-3 rounded-xl border border-border-hover bg-surface/40 text-text-secondary
                                                hover:text-accent hover:border-accent-mid hover:bg-accent-dim
                                                transition-colors duration-300"
                                 >
