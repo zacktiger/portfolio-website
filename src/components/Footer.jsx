@@ -85,7 +85,8 @@ export default function Footer() {
                     <p className="text-xs font-display text-text-muted">
                         © {new Date().getFullYear()} Kshitij Bachhav
                     </p>
-                    <p className="text-xs font-mono text-text-muted tracking-wider">
+                    {/* Easter egg needs a keyboard — pointless on touch screens */}
+                    <p className="hidden sm:block text-xs font-mono text-text-muted tracking-wider">
                         type <span className="text-accent">"play"</span> for a surprise
                     </p>
                 </div>
