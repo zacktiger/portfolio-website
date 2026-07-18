@@ -127,7 +127,9 @@ function Scene({ scrollRef }) {
     // Anchor objects to the screen edges. viewport.width is measured at z=0,
     // but the frustum widens behind it — scale x by (CAM_Z - z) / CAM_Z so
     // objects hug the edge at their own depth instead of crowding the content.
-    const edgeAt = (z, frac = 0.92) => Math.max(halfW * frac, 3.2) * ((CAM_Z - z) / CAM_Z)
+    // Sit slightly past the frame edge — the dock nav and its tooltips live at
+    // the right margin, so floaters peek in rather than sit on top of them.
+    const edgeAt = (z, frac = 0.98) => Math.max(halfW * frac, 3.4) * ((CAM_Z - z) / CAM_Z)
 
     return (
         <>
@@ -145,11 +147,11 @@ function Scene({ scrollRef }) {
                 <WireShape geometry={<icosahedronGeometry args={[0.75, 0]} />} />
             </Floater>
 
-            <Floater basePos={[edgeAt(-2, 0.9), -2.7, -2]} scrollRef={scrollRef} spin={0.18} drift={1.4} phase={4}>
+            <Floater basePos={[edgeAt(-2, 0.94), -2.7, -2]} scrollRef={scrollRef} spin={0.18} drift={1.4} phase={4}>
                 <WireShape geometry={<torusGeometry args={[0.55, 0.22, 6, 10]} />} />
             </Floater>
 
-            <Floater basePos={[-edgeAt(-2.5, 0.88), 2.4, -2.5]} scrollRef={scrollRef} spin={0.4} drift={-3.5} phase={1}>
+            <Floater basePos={[-edgeAt(-2.5, 0.94), 2.4, -2.5]} scrollRef={scrollRef} spin={0.4} drift={-3.5} phase={1}>
                 <WireShape geometry={<octahedronGeometry args={[0.6, 0]} />} />
             </Floater>
         </>
