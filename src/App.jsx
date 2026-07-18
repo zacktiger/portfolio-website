@@ -14,6 +14,7 @@ import ScrollProgress from './components/ScrollProgress'
 const PixelModels = lazy(() => import('./components/PixelModels'))
 import BackgroundMusic from './components/BackgroundMusic'
 import EasterEgg from './components/EasterEgg'
+import Terminal from './components/Terminal'
 import TechMarquee from './components/TechMarquee'
 
 function Divider() {
@@ -45,6 +46,7 @@ export default function App() {
             <Footer />
             <BackgroundMusic />
             <EasterEgg />
+            <Terminal />
         </div>
     )
 }
