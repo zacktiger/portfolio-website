@@ -85,7 +85,8 @@ export default function Footer() {
                     <p className="text-xs font-display text-text-muted">
                         © {new Date().getFullYear()} Kshitij Bachhav
                     </p>
-                    <p className="text-xs font-mono text-text-muted tracking-wider">
+                    {/* Both the easter egg and the terminal need a keyboard — pointless on touch screens */}
+                    <p className="hidden sm:block text-xs font-mono text-text-muted tracking-wider">
                         <button
                             type="button"
                             onClick={() => window.dispatchEvent(new Event('open-retro-game'))}

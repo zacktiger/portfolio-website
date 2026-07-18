@@ -253,7 +253,7 @@ export default function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3, duration: 0.8 }}
-                    className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent mb-8"
+                    className="font-mono text-[10px] sm:text-[11px] tracking-[0.18em] sm:tracking-[0.3em] uppercase text-accent mb-8"
                 >
                     Software Development Engineer
                 </motion.p>
@@ -339,7 +339,7 @@ export default function Hero() {
                                     target={label !== 'Email' ? '_blank' : undefined}
                                     rel="noopener noreferrer"
                                     aria-label={label}
-                                    className="block p-3 rounded-xl border border-border text-text-tertiary
+                                    className="block p-3 rounded-xl border border-border-hover bg-surface/40 text-text-secondary
                                                hover:text-accent hover:border-accent-mid hover:bg-accent-dim
                                                transition-colors duration-300"
                                 >

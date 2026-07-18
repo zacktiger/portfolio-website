@@ -18,8 +18,8 @@
   /* ── Text hierarchy ── */
   --color-text-primary: #f5f5f5;
   --color-text-secondary: #a0a0a0;
-  --color-text-tertiary: #666666;
-  --color-text-muted: #444444;
+  --color-text-tertiary: #808080; /* ~5:1 on bg — clears WCAG AA for the body copy that uses it */
+  --color-text-muted: #5c5c5c;
 
   /* ── Typography ── */
   --font-heading: 'Sora', 'Space Grotesk', sans-serif;
@@ -39,9 +39,15 @@
    BASE
    ═══════════════════════════════════════════ */
 
+/*
+ * box-sizing only. Do NOT add a margin/padding reset here: this rule
+ * is unlayered, and unlayered declarations beat Tailwind's layered
+ * utilities in the cascade, so an "all: margin 0; padding 0" reset on
+ * the universal selector silently kills every padding and margin
+ * utility site-wide. Tailwind's own Preflight already zeroes the
+ * default element margins, correctly layered so utilities still win.
+ */
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 

@@ -43,7 +43,7 @@ function AnimatedCounter({ value, suffix = '', label }) {
                 {count}
                 <span className="serif-accent text-3xl sm:text-4xl ml-0.5">{suffix}</span>
             </div>
-            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-text-tertiary mt-2">
+            <div className="font-mono text-[9px] sm:text-[10px] tracking-[0.12em] sm:tracking-[0.2em] uppercase text-text-tertiary mt-2">
                 {label}
             </div>
         </div>
@@ -93,13 +93,13 @@ export default function About() {
                     transition={{ ...fadeUp.transition, delay: 0.15 }}
                     className="grid grid-cols-3 mb-20 border-y border-white/[0.07]"
                 >
-                    <div className="py-8 pr-6 border-r border-white/[0.07]">
+                    <div className="py-6 sm:py-8 pr-3 sm:pr-6 border-r border-white/[0.07]">
                         <AnimatedCounter value={9} suffix="+" label="Projects Built" />
                     </div>
-                    <div className="py-8 px-6 sm:px-10 border-r border-white/[0.07]">
+                    <div className="py-6 sm:py-8 px-3 sm:px-10 border-r border-white/[0.07]">
                         <AnimatedCounter value={200} suffix="+" label="DSA Problems" />
                     </div>
-                    <div className="py-8 pl-6 sm:pl-10">
+                    <div className="py-6 sm:py-8 pl-3 sm:pl-10">
                         <AnimatedCounter value={1} suffix="st" label="Place — IIT BHU" />
                     </div>
                 </motion.div>

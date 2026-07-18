@@ -97,20 +97,22 @@ function VoxelInvader({ size = 0.16 }) {
 function WireShape({ geometry }) {
     return (
         <group>
+            {/* Faint glassy core so the shape has volume without reading as a muddy blob */}
             <mesh>
                 {geometry}
                 <meshStandardMaterial
                     color={DARK}
                     emissive={ACCENT}
-                    emissiveIntensity={0.18}
+                    emissiveIntensity={0.1}
                     flatShading
                     transparent
-                    opacity={0.9}
+                    opacity={0.22}
                 />
             </mesh>
-            <mesh scale={1.001}>
+            {/* Bright edges carry the form — glowing wireframe, like the hero constellation */}
+            <mesh scale={1.003}>
                 {geometry}
-                <meshBasicMaterial color={ACCENT} wireframe transparent opacity={0.35} />
+                <meshBasicMaterial color={ACCENT} wireframe transparent opacity={0.6} />
             </mesh>
         </group>
     )
@@ -125,14 +127,19 @@ function Scene({ scrollRef }) {
     // Anchor objects to the screen edges. viewport.width is measured at z=0,
     // but the frustum widens behind it — scale x by (CAM_Z - z) / CAM_Z so
     // objects hug the edge at their own depth instead of crowding the content.
-    const edgeAt = (z, frac = 0.92) => Math.max(halfW * frac, 3.2) * ((CAM_Z - z) / CAM_Z)
+    // Sit slightly past the frame edge — the dock nav and its tooltips live at
+    // the right margin, so floaters peek in rather than sit on top of them.
+    const edgeAt = (z, frac = 0.98) => Math.max(halfW * frac, 3.4) * ((CAM_Z - z) / CAM_Z)
 
     return (
         <>
             <ambientLight intensity={0.5} />
             <directionalLight position={[4, 6, 5]} intensity={1.1} color="#bfefff" />
 
-            <Floater basePos={[edgeAt(-1), 1.6, -1]} scrollRef={scrollRef} spin={0.2} drift={-2.5} phase={0}>
+            {/* Right edge shares space with the fixed dock nav (right: 24px, top: 50%),
+               so the two right-side floaters keep to the upper/lower thirds and use a
+               gentle drift that never sweeps them through the dock's vertical centre. */}
+            <Floater basePos={[edgeAt(-1), 2.3, -1]} scrollRef={scrollRef} spin={0.2} drift={-1.0} phase={0}>
                 <VoxelInvader />
             </Floater>
 
@@ -140,11 +147,11 @@ function Scene({ scrollRef }) {
                 <WireShape geometry={<icosahedronGeometry args={[0.75, 0]} />} />
             </Floater>
 
-            <Floater basePos={[edgeAt(-2, 0.88), -2.4, -2]} scrollRef={scrollRef} spin={0.18} drift={4.5} phase={4}>
+            <Floater basePos={[edgeAt(-2, 0.94), -2.7, -2]} scrollRef={scrollRef} spin={0.18} drift={1.4} phase={4}>
                 <WireShape geometry={<torusGeometry args={[0.55, 0.22, 6, 10]} />} />
             </Floater>
 
-            <Floater basePos={[-edgeAt(-2.5, 0.88), 2.4, -2.5]} scrollRef={scrollRef} spin={0.4} drift={-3.5} phase={1}>
+            <Floater basePos={[-edgeAt(-2.5, 0.94), 2.4, -2.5]} scrollRef={scrollRef} spin={0.4} drift={-3.5} phase={1}>
                 <WireShape geometry={<octahedronGeometry args={[0.6, 0]} />} />
             </Floater>
         </>
@@ -174,7 +181,7 @@ export default function PixelModels() {
     return (
         <div
             className="fixed inset-0 z-0 pointer-events-none"
-            style={{ opacity: 0.7 }}
+            style={{ opacity: 0.55 }}
             aria-hidden="true"
         >
             <Canvas

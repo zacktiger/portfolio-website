@@ -7,7 +7,14 @@ export default function BackgroundMusic() {
     const [isPlaying, setIsPlaying] = useState(false)
     const [hasInteracted, setHasInteracted] = useState(false)
     const [showTooltip, setShowTooltip] = useState(false)
+    const [hintExpired, setHintExpired] = useState(false)
     const [volume] = useState(0.35)
+
+    // The hint chip floats over page content, so let it retire on its own
+    useEffect(() => {
+        const timer = setTimeout(() => setHintExpired(true), 12000)
+        return () => clearTimeout(timer)
+    }, [])
 
     useEffect(() => {
         const audio = audioRef.current
@@ -140,13 +147,13 @@ export default function BackgroundMusic() {
             </motion.div>
 
             <AnimatePresence>
-                {!hasInteracted && (
+                {!hasInteracted && !hintExpired && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ delay: 3, duration: 1 }}
-                        className="fixed bottom-20 right-4 z-[99] px-3 py-2 rounded-lg text-[10px] font-mono tracking-[0.15em] uppercase pointer-events-none bg-surface/80 text-text-muted border border-border backdrop-blur-md"
+                        className="hidden sm:block fixed bottom-20 right-4 z-[99] px-3 py-2 rounded-lg text-[10px] font-mono tracking-[0.15em] uppercase pointer-events-none bg-surface/80 text-text-muted border border-border backdrop-blur-md"
                     >
                         ♪ click for music
                     </motion.div>
