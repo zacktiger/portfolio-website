@@ -198,9 +198,9 @@ export const achievements = [
 
 export const writingProfile = {
     platform: 'Medium',
-    // Paste your Medium (or blog) profile URL here to light up the
-    // "Read all on Medium →" link. Leave '' while there are no posts.
-    url: '',
+    // Profile URL — powers the "Follow on Medium" button (coming-soon
+    // state) and the "Read all on Medium →" link once posts exist.
+    url: 'https://medium.com/@kshitijbachhav005',
 }
 
 export const posts = []
