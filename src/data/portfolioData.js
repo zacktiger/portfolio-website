@@ -203,7 +203,28 @@ export const writingProfile = {
     url: 'https://medium.com/@kshitijbachhav005',
 }
 
-export const posts = []
+export const posts = [
+    {
+        title: 'I Realized Oil Is an Economic Problem, Not a Geological One.',
+        blurb:
+            'Why a barrel of oil that technically exists underground can still be worth nothing — and how that quirk of geology quietly shapes U.S.–Saudi relations.',
+        date: '2026-07-19',
+        readMinutes: 8,
+        tag: 'Economics',
+        url: 'https://medium.com/@kshitijbachhav005/i-realized-oil-is-an-economic-problem-not-a-geological-one-060bdbebf102',
+        cover: 'https://cdn-images-1.medium.com/max/1200/1*jA3qCnqRxeGN9Bw5u4JZyg.jpeg',
+    },
+    {
+        title: "Why Even Superpowers Can't Win Wars Anymore",
+        blurb:
+            'Russia and the U.S. both struggle against far smaller nations like Ukraine and Iran — a look at why drones, political risk, and the end of total war have made decisive victory nearly impossible.',
+        date: '2026-04-18',
+        readMinutes: 5,
+        tag: 'Geopolitics',
+        url: 'https://medium.com/@kshitijbachhav005/why-even-superpowers-cant-win-wars-anymore-f8f82d89a2eb',
+        cover: 'https://cdn-images-1.medium.com/max/1200/1*9VN_7H0pJo1qhBGjo29wMQ.jpeg',
+    },
+]
 
 // ══════════════════════════════════════════
 //  CONTACT

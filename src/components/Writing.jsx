@@ -168,8 +168,9 @@ export default function Writing() {
                             <span className="serif-accent">ideas.</span>
                         </h2>
                         <p className="font-body text-text-tertiary text-sm max-w-md">
-                            Long-form write-ups on architecture, backend systems, and the
-                            engineering decisions behind my projects.
+                            Long-form essays on the ideas I'm thinking through —
+                            economics, geopolitics, technology, and the systems that
+                            connect them.
                         </p>
                     </div>
 
