@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, User, Wrench, FolderKanban, Github, Mail, Menu, X } from 'lucide-react'
+import { Home, User, Wrench, FolderKanban, Github, PenLine, Mail, Menu, X } from 'lucide-react'
 
 const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
@@ -8,6 +8,7 @@ const navItems = [
     { id: 'skills', icon: Wrench, label: 'Skills' },
     { id: 'projects', icon: FolderKanban, label: 'Projects' },
     { id: 'github', icon: Github, label: 'GitHub' },
+    { id: 'writing', icon: PenLine, label: 'Writing' },
     { id: 'contact', icon: Mail, label: 'Contact' },
 ]
 

@@ -181,6 +181,31 @@ export const achievements = [
 ]
 
 // ══════════════════════════════════════════
+//  WRITING / POSTS
+//  The "coming soon" state on the site disappears automatically
+//  the moment this `posts` array has at least one entry.
+//  Copy this shape to add an article:
+//  {
+//      title: 'How I built a multi-tenant SaaS',
+//      blurb: 'A one-line teaser that reads like a magazine dek.',
+//      date: '2026-02-14',          // ISO date → rendered as "Feb 2026"
+//      readMinutes: 6,              // optional
+//      tag: 'Backend',             // optional category label
+//      url: 'https://medium.com/@handle/slug',
+//      cover: '/post-saas.png',    // optional; omit for a gradient fallback
+//  }
+// ══════════════════════════════════════════
+
+export const writingProfile = {
+    platform: 'Medium',
+    // Paste your Medium (or blog) profile URL here to light up the
+    // "Read all on Medium →" link. Leave '' while there are no posts.
+    url: '',
+}
+
+export const posts = []
+
+// ══════════════════════════════════════════
 //  CONTACT
 // ══════════════════════════════════════════
 
