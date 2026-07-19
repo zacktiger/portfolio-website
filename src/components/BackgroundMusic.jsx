@@ -96,7 +96,7 @@ export default function BackgroundMusic() {
                 initial={{ opacity: 0, scale: 0, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ delay: 2, duration: 0.6, type: 'spring', stiffness: 200 }}
-                className="fixed bottom-6 right-6 z-[100]"
+                className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100]"
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
             >

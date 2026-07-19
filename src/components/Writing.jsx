@@ -155,6 +155,12 @@ function ComingSoon() {
    ─────────────────────────────────────────── */
 export default function Writing() {
     const hasPosts = posts.length > 0
+    // Match the column count to the number of posts so a short list never
+    // leaves an empty trailing column (2 posts in a 3-col grid looked lopsided).
+    const gridClass =
+        posts.length === 1 ? 'grid-cols-1 max-w-md'
+        : posts.length === 2 ? 'sm:grid-cols-2'
+        : 'sm:grid-cols-2 lg:grid-cols-3'
 
     return (
         <section id="writing" className="relative py-24 sm:py-32">
@@ -188,7 +194,7 @@ export default function Writing() {
                 </motion.div>
 
                 {hasPosts ? (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className={`grid gap-6 ${gridClass}`}>
                         {posts.map((post, i) => (
                             <PostCard key={post.url || post.title} post={post} index={i} />
                         ))}

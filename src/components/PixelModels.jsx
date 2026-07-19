@@ -139,7 +139,7 @@ function Scene({ scrollRef }) {
             {/* Right edge shares space with the fixed dock nav (right: 24px, top: 50%),
                so the two right-side floaters keep to the upper/lower thirds and use a
                gentle drift that never sweeps them through the dock's vertical centre. */}
-            <Floater basePos={[edgeAt(-1), 2.3, -1]} scrollRef={scrollRef} spin={0.2} drift={-1.0} phase={0}>
+            <Floater basePos={[edgeAt(-1, 1.04), 2.5, -1]} scrollRef={scrollRef} spin={0.2} drift={-0.6} phase={0}>
                 <VoxelInvader />
             </Floater>
 
@@ -147,7 +147,7 @@ function Scene({ scrollRef }) {
                 <WireShape geometry={<icosahedronGeometry args={[0.75, 0]} />} />
             </Floater>
 
-            <Floater basePos={[edgeAt(-2, 0.94), -2.7, -2]} scrollRef={scrollRef} spin={0.18} drift={1.4} phase={4}>
+            <Floater basePos={[edgeAt(-2, 1.05), -2.8, -2]} scrollRef={scrollRef} spin={0.18} drift={0.7} phase={4}>
                 <WireShape geometry={<torusGeometry args={[0.55, 0.22, 6, 10]} />} />
             </Floater>
 
