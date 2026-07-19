@@ -57,7 +57,7 @@ export default function Navbar() {
                 transition={{ delay: 2, duration: 0.8, ease: 'easeOut' }}
                 className="dock-nav"
             >
-                <div className="flex flex-col items-center gap-1 p-2 rounded-2xl bg-surface/80 backdrop-blur-xl border border-border">
+                <div className="pointer-events-auto flex flex-col items-center gap-1 p-2 rounded-2xl bg-surface/80 backdrop-blur-xl border border-border">
                     {navItems.map(({ id, icon: Icon, label }) => (
                         <button
                             key={id}
