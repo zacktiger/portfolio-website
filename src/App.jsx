@@ -13,7 +13,6 @@ import ScrollProgress from './components/ScrollProgress'
 
 // three.js is heavy — load the 3D floaters in their own chunk after first paint
 const PixelModels = lazy(() => import('./components/PixelModels'))
-import BackgroundMusic from './components/BackgroundMusic'
 import EasterEgg from './components/EasterEgg'
 import Terminal from './components/Terminal'
 import TechMarquee from './components/TechMarquee'
@@ -47,7 +46,6 @@ export default function App() {
                 <Contact />
             </main>
             <Footer />
-            <BackgroundMusic />
             <EasterEgg />
             <Terminal />
         </div>

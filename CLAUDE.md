@@ -20,7 +20,7 @@ There is no lint script, no test runner, and no TypeScript configured in this re
 
 ## Architecture
 
-**Single-page composition.** `src/App.jsx` renders one document: `Navbar`, then a `<main>` with `Hero → About → Skills → Projects → Contact` sections separated by a `Divider`, then `Footer`, plus fixed-position overlay components (`CustomCursor`, `BackgroundMusic`, `EasterEgg`) mounted at the root. Sections are plain `<section id="...">` elements; the id (`home`, `about`, `skills`, `projects`, `contact`) is the anchor used for both nav scroll-spy and `scrollIntoView` navigation — keep those ids in sync between `Navbar.jsx`'s `navItems` and each section component.
+**Single-page composition.** `src/App.jsx` renders one document: `Navbar`, then a `<main>` with `Hero → About → Skills → Projects → Contact` sections separated by a `Divider`, then `Footer`, plus fixed-position overlay components (`CustomCursor`, `EasterEgg`) mounted at the root. Sections are plain `<section id="...">` elements; the id (`home`, `about`, `skills`, `projects`, `contact`) is the anchor used for both nav scroll-spy and `scrollIntoView` navigation — keep those ids in sync between `Navbar.jsx`'s `navItems` and each section component.
 
 **Content lives in data, not JSX.** `src/data/portfolioData.js` is the single source of truth for skills, projects, achievements, and contact info (email/LinkedIn/GitHub) — it's a plain JS module exporting arrays/objects consumed by `Skills.jsx`, `Projects.jsx`, and `Contact.jsx`. To add/edit a project or skill category, edit this file, not the component markup. Project entries reference images by path (e.g. `/project-saas.png`) served from `public/`.
 
