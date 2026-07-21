@@ -2,9 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const isTouchDevice = () => 'ontouchstart' in window && navigator.maxTouchPoints > 0
 
-const MAX_TRAIL = 28
-const TRAIL_MAX_LEN = 55
-const TRAIL_DECAY = 6
+const RING_SIZE = 32
+const DOT_SIZE = 8
+// Fraction of the remaining gap the ring closes per frame — lower reads as more lag.
+const RING_EASE = 0.2
+const HOVER_SCALE = 1.9
+const INTERACTIVE_SELECTOR =
+    'a, button, [role="button"], input, textarea, select, label, [data-project-id]'
 
 function createParticles(x, y) {
     const count = 6 + Math.floor(Math.random() * 4)
@@ -18,60 +22,96 @@ function createParticles(x, y) {
     return particles
 }
 
-function interpolate(a, b, spacing) {
-    const dx = b.x - a.x
-    const dy = b.y - a.y
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    if (dist < spacing) return []
-    const steps = Math.floor(dist / spacing)
-    const pts = []
-    for (let i = 1; i <= steps; i++) {
-        const t = i / (steps + 1)
-        pts.push({ x: a.x + dx * t, y: a.y + dy * t, life: 1 })
-    }
-    return pts
-}
-
 export default function CustomCursor() {
     const [isTouch, setIsTouch] = useState(false)
     const canvasRef = useRef(null)
-    const cursorRef = useRef(null)
-    const trailRef = useRef([])
+    const dotRef = useRef(null)
+    const ringRef = useRef(null)
+
+    const pointerRef = useRef({ x: 0, y: 0 })
+    const ringPosRef = useRef({ x: 0, y: 0 })
+    const scaleRef = useRef(1)
+    const targetScaleRef = useRef(1)
+    const hasMovedRef = useRef(false)
+
     const particlesRef = useRef([])
-    const animRef = useRef(null)
-    const lastPosRef = useRef(null)
+    const particleLoopRef = useRef(null)
+    const ringLoopRef = useRef(null)
 
     useEffect(() => { setIsTouch(isTouchDevice()) }, [])
 
+    /* ── Ring easing ──────────────────────────────────────────────
+       The ring chases the pointer instead of being pinned to it. The loop
+       parks itself once the ring has caught up, so an idle cursor costs
+       zero frames. */
+    const runRingLoop = useCallback(() => {
+        if (ringLoopRef.current) return
+        const step = () => {
+            const ring = ringRef.current
+            if (!ring) { ringLoopRef.current = null; return }
+
+            const p = pointerRef.current
+            const r = ringPosRef.current
+            r.x += (p.x - r.x) * RING_EASE
+            r.y += (p.y - r.y) * RING_EASE
+            scaleRef.current += (targetScaleRef.current - scaleRef.current) * RING_EASE
+
+            const settled =
+                Math.abs(p.x - r.x) < 0.1 &&
+                Math.abs(p.y - r.y) < 0.1 &&
+                Math.abs(targetScaleRef.current - scaleRef.current) < 0.005
+
+            if (settled) {
+                // Snap to the target so repeated near-misses can't accumulate drift
+                r.x = p.x
+                r.y = p.y
+                scaleRef.current = targetScaleRef.current
+                ringLoopRef.current = null
+            }
+
+            ring.style.transform =
+                `translate3d(${r.x - RING_SIZE / 2}px, ${r.y - RING_SIZE / 2}px, 0) scale(${scaleRef.current})`
+
+            if (!settled) ringLoopRef.current = requestAnimationFrame(step)
+        }
+        ringLoopRef.current = requestAnimationFrame(step)
+    }, [])
+
     useEffect(() => {
         if (isTouch) return
+
         const handleMove = (e) => {
             const nx = e.clientX
             const ny = e.clientY
+            pointerRef.current = { x: nx, y: ny }
 
-            if (cursorRef.current) {
-                cursorRef.current.style.transform = `translate3d(${nx - 4}px, ${ny - 4}px, 0)`
-                cursorRef.current.style.opacity = '1'
+            if (!hasMovedRef.current) {
+                // Drop the ring straight onto the pointer so it doesn't fly in from 0,0
+                hasMovedRef.current = true
+                ringPosRef.current = { x: nx, y: ny }
             }
 
-            const last = lastPosRef.current
-            if (last) {
-                const interp = interpolate(last, { x: nx, y: ny }, 3)
-                interp.forEach(p => trailRef.current.push(p))
+            if (dotRef.current) {
+                dotRef.current.style.transform =
+                    `translate3d(${nx - DOT_SIZE / 2}px, ${ny - DOT_SIZE / 2}px, 0)`
+                dotRef.current.style.opacity = '1'
             }
-            trailRef.current.push({ x: nx, y: ny, life: 1 })
+            if (ringRef.current) ringRef.current.style.opacity = '1'
 
-            if (trailRef.current.length > MAX_TRAIL * 3) {
-                trailRef.current = trailRef.current.slice(-MAX_TRAIL * 2)
-            }
-            lastPosRef.current = { x: nx, y: ny }
+            targetScaleRef.current = e.target?.closest?.(INTERACTIVE_SELECTOR)
+                ? HOVER_SCALE
+                : 1
+
+            runRingLoop()
         }
-        const handleLeave = () => {
-            if (cursorRef.current) cursorRef.current.style.opacity = '0'
+
+        const setVisible = (visible) => {
+            const v = visible ? '1' : '0'
+            if (dotRef.current) dotRef.current.style.opacity = v
+            if (ringRef.current) ringRef.current.style.opacity = v
         }
-        const handleEnter = () => {
-            if (cursorRef.current) cursorRef.current.style.opacity = '1'
-        }
+        const handleLeave = () => setVisible(false)
+        const handleEnter = () => setVisible(true)
 
         window.addEventListener('mousemove', handleMove)
         document.addEventListener('mouseleave', handleLeave)
@@ -80,78 +120,25 @@ export default function CustomCursor() {
             window.removeEventListener('mousemove', handleMove)
             document.removeEventListener('mouseleave', handleLeave)
             document.removeEventListener('mouseenter', handleEnter)
+            if (ringLoopRef.current) cancelAnimationFrame(ringLoopRef.current)
+            ringLoopRef.current = null
         }
-    }, [isTouch])
+    }, [isTouch, runRingLoop])
 
-    useEffect(() => {
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        const resize = () => {
-            canvas.width = window.innerWidth
-            canvas.height = window.innerHeight
-        }
-        resize()
-        window.addEventListener('resize', resize)
-
+    /* ── Laser-hit particles ──────────────────────────────────────
+       Only spins up while there are particles alive, then stops. */
+    const runParticleLoop = useCallback(() => {
+        if (particleLoopRef.current) return
         let last = performance.now()
         const loop = (now) => {
+            const canvas = canvasRef.current
+            const ctx = canvas?.getContext('2d')
+            if (!ctx) { particleLoopRef.current = null; return }
+
             const dt = Math.min((now - last) / 1000, 0.05)
             last = now
             ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-            trailRef.current.forEach(p => { p.life -= TRAIL_DECAY * dt })
-            trailRef.current = trailRef.current.filter(p => p.life > 0.01)
-
-            const trail = trailRef.current
-            if (trail.length >= 2) {
-                const distances = [0]
-                for (let i = trail.length - 2; i >= 0; i--) {
-                    const a = trail[i + 1]
-                    const b = trail[i]
-                    const dx = b.x - a.x
-                    const dy = b.y - a.y
-                    distances.unshift(distances[0] + Math.sqrt(dx * dx + dy * dy))
-                }
-                const totalLen = distances[0]
-
-                for (let i = 0; i < trail.length - 1; i++) {
-                    const p0 = trail[i]
-                    const p1 = trail[i + 1]
-                    const distFromTip = totalLen - distances[i]
-                    if (distFromTip > TRAIL_MAX_LEN) continue
-
-                    const taper = 1 - (distFromTip / TRAIL_MAX_LEN)
-                    const width = taper * 2.5 + 0.3
-                    const alpha = taper * Math.min(p0.life, p1.life) * 0.5
-                    if (alpha < 0.005) continue
-
-                    ctx.save()
-                    ctx.globalAlpha = alpha
-                    ctx.shadowColor = `rgba(0, 212, 255, ${alpha * 0.5})`
-                    ctx.shadowBlur = 8 + taper * 4
-                    ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`
-                    ctx.lineWidth = width + 1
-                    ctx.lineCap = 'round'
-                    ctx.beginPath()
-                    ctx.moveTo(p0.x, p0.y)
-                    ctx.lineTo(p1.x, p1.y)
-                    ctx.stroke()
-
-                    // Inner core
-                    ctx.shadowBlur = 3
-                    ctx.shadowColor = `rgba(200, 240, 255, ${alpha * 0.4})`
-                    ctx.strokeStyle = `rgba(200, 240, 255, ${alpha * 0.7})`
-                    ctx.lineWidth = width * 0.4
-                    ctx.beginPath()
-                    ctx.moveTo(p0.x, p0.y)
-                    ctx.lineTo(p1.x, p1.y)
-                    ctx.stroke()
-                    ctx.restore()
-                }
-            }
-
-            // Particles
             particlesRef.current = particlesRef.current.filter(p => p.life > 0)
             particlesRef.current.forEach(p => {
                 p.x += Math.cos(p.angle) * p.speed * dt
@@ -174,12 +161,29 @@ export default function CustomCursor() {
                 ctx.restore()
             })
 
-            animRef.current = requestAnimationFrame(loop)
+            if (particlesRef.current.length === 0) {
+                particleLoopRef.current = null
+                return
+            }
+            particleLoopRef.current = requestAnimationFrame(loop)
         }
-        animRef.current = requestAnimationFrame(loop)
+        particleLoopRef.current = requestAnimationFrame(loop)
+    }, [])
+
+    useEffect(() => {
+        if (isTouch) return
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const resize = () => {
+            canvas.width = window.innerWidth
+            canvas.height = window.innerHeight
+        }
+        resize()
+        window.addEventListener('resize', resize)
         return () => {
-            cancelAnimationFrame(animRef.current)
             window.removeEventListener('resize', resize)
+            if (particleLoopRef.current) cancelAnimationFrame(particleLoopRef.current)
+            particleLoopRef.current = null
         }
     }, [isTouch])
 
@@ -195,12 +199,13 @@ export default function CustomCursor() {
             document.body.classList.add('screen-shake')
             setTimeout(() => document.body.classList.remove('screen-shake'), 100)
             particlesRef.current.push(...createParticles(x, y))
+            runParticleLoop()
             projectBtn.dispatchEvent(new CustomEvent('laser-hit', {
                 detail: { projectId: projectBtn.dataset.projectId },
                 bubbles: true,
             }))
         }
-    }, [])
+    }, [runParticleLoop])
 
     useEffect(() => {
         window.addEventListener('click', shoot)
@@ -220,9 +225,10 @@ export default function CustomCursor() {
                     pointerEvents: 'none',
                 }}
             />
-            {/* Simple dot cursor */}
+            {/* Lagging ring — the locator. `difference` keeps it readable on the
+                dark bg, over the white headings, and over the cyan display type. */}
             <div
-                ref={cursorRef}
+                ref={ringRef}
                 style={{
                     position: 'fixed',
                     left: 0,
@@ -231,11 +237,29 @@ export default function CustomCursor() {
                     zIndex: 99999,
                     opacity: 0,
                     willChange: 'transform',
-                    width: 8,
-                    height: 8,
+                    width: RING_SIZE,
+                    height: RING_SIZE,
                     borderRadius: '50%',
-                    background: '#00d4ff',
-                    boxShadow: '0 0 8px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.2)',
+                    border: '1.5px solid #ffffff',
+                    mixBlendMode: 'difference',
+                }}
+            />
+            {/* Dot — pinned to the pointer, no lag */}
+            <div
+                ref={dotRef}
+                style={{
+                    position: 'fixed',
+                    left: 0,
+                    top: 0,
+                    pointerEvents: 'none',
+                    zIndex: 99999,
+                    opacity: 0,
+                    willChange: 'transform',
+                    width: DOT_SIZE,
+                    height: DOT_SIZE,
+                    borderRadius: '50%',
+                    background: '#ffffff',
+                    mixBlendMode: 'difference',
                 }}
             />
         </>
