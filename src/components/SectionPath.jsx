@@ -1,5 +1,8 @@
-import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect, useCallback, lazy, Suspense, Component } from 'react'
 import { motion, useScroll, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
+
+// three.js car in its own chunk — keeps three off the initial bundle (like PixelModels)
+const PathCarModel = lazy(() => import('./PathCarModel'))
 
 /*
  * SectionPath — a colorful "route" that threads down the page, connecting
@@ -58,6 +61,21 @@ function buildPath(pts) {
  * path tangent. Nothing else in this file needs to change.
  * ───────────────────────────────────────────────────────────────────────────
  */
+// If the 3D car fails to load (missing glb, WebGL off), fall back to the SVG.
+class CarBoundary extends Component {
+    constructor(props) {
+        super(props)
+        this.state = { failed: false }
+    }
+    static getDerivedStateFromError() {
+        return { failed: true }
+    }
+    render() {
+        if (this.state.failed) return this.props.fallback
+        return this.props.children
+    }
+}
+
 function CarGraphic() {
     return (
         <svg width="48" height="28" viewBox="0 0 48 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -409,7 +427,11 @@ export default function SectionPath() {
                 <div ref={carHopRef} className="path-car__hop">
                     <div ref={carSpinRef} className="path-car__spin">
                         <div ref={carFlipRef} className="path-car__flip">
-                            <CarGraphic />
+                            <CarBoundary fallback={<CarGraphic />}>
+                                <Suspense fallback={<CarGraphic />}>
+                                    <PathCarModel />
+                                </Suspense>
+                            </CarBoundary>
                         </div>
                     </div>
                 </div>

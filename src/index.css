@@ -573,7 +573,8 @@ body.screen-shake {
   transform-origin: center;
   transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.path-car svg {
+.path-car svg,
+.path-car canvas {
   display: block;
   filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.55));
 }
