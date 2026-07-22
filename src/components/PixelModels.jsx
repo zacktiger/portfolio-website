@@ -124,12 +124,17 @@ function Scene({ scrollRef }) {
     const { viewport } = useThree()
     const halfW = viewport.width / 2
 
-    // Anchor objects to the screen edges. viewport.width is measured at z=0,
-    // but the frustum widens behind it — scale x by (CAM_Z - z) / CAM_Z so
-    // objects hug the edge at their own depth instead of crowding the content.
-    // Sit slightly past the frame edge — the dock nav and its tooltips live at
-    // the right margin, so floaters peek in rather than sit on top of them.
-    const edgeAt = (z, frac = 0.98) => Math.max(halfW * frac, 3.4) * ((CAM_Z - z) / CAM_Z)
+    // Anchor an object of the given bounding radius so its WHOLE shape sits just
+    // inside the visible frame at its own depth. viewport.width is measured at
+    // z=0, but the frustum widens behind it, so scale the visible half-width by
+    // (CAM_Z - z) / CAM_Z. Then subtract the object's radius (+ a little for its
+    // horizontal drift) so the edge tucks against the frame instead of the centre
+    // sitting on the frame and the outer half getting sliced off. The floor keeps
+    // a hole in the middle so shapes never crowd content on a narrow window.
+    const edgeFor = (z, radius, margin = 0.5) => {
+        const visibleHalf = halfW * ((CAM_Z - z) / CAM_Z)
+        return Math.max(visibleHalf - radius - margin, radius + 1)
+    }
 
     return (
         <>
@@ -138,20 +143,24 @@ function Scene({ scrollRef }) {
 
             {/* Right edge shares space with the fixed dock nav (right: 24px, top: 50%),
                so the two right-side floaters keep to the upper/lower thirds and use a
-               gentle drift that never sweeps them through the dock's vertical centre. */}
-            <Floater basePos={[edgeAt(-1, 1.04), 2.5, -1]} scrollRef={scrollRef} spin={0.2} drift={-0.6} phase={0}>
+               gentle drift that never sweeps them through the dock's vertical centre.
+               Radii are bounding-sphere estimates — objects spin freely, so any vertex
+               can swing outward and must clear the edge. */}
+            {/* Invader is a 9×8 plate spinning on two axes, so its bounding sphere
+               (~1.0) is wider than the flat shape looks. */}
+            <Floater basePos={[edgeFor(-1, 1.0), 2.5, -1]} scrollRef={scrollRef} spin={0.2} drift={-0.6} phase={0}>
                 <VoxelInvader />
             </Floater>
 
-            <Floater basePos={[-edgeAt(-1.5), -0.4, -1.5]} scrollRef={scrollRef} spin={0.3} drift={3.5} phase={2}>
+            <Floater basePos={[-edgeFor(-1.5, 0.8), -0.4, -1.5]} scrollRef={scrollRef} spin={0.3} drift={3.5} phase={2}>
                 <WireShape geometry={<icosahedronGeometry args={[0.75, 0]} />} />
             </Floater>
 
-            <Floater basePos={[edgeAt(-2, 1.05), -2.8, -2]} scrollRef={scrollRef} spin={0.18} drift={0.7} phase={4}>
+            <Floater basePos={[edgeFor(-2, 0.82), -2.8, -2]} scrollRef={scrollRef} spin={0.18} drift={0.7} phase={4}>
                 <WireShape geometry={<torusGeometry args={[0.55, 0.22, 6, 10]} />} />
             </Floater>
 
-            <Floater basePos={[-edgeAt(-2.5, 0.94), 2.4, -2.5]} scrollRef={scrollRef} spin={0.4} drift={-3.5} phase={1}>
+            <Floater basePos={[-edgeFor(-2.5, 0.65), 2.4, -2.5]} scrollRef={scrollRef} spin={0.4} drift={-3.5} phase={1}>
                 <WireShape geometry={<octahedronGeometry args={[0.6, 0]} />} />
             </Floater>
         </>
