@@ -543,6 +543,24 @@ body.screen-shake {
 }
 
 /* ═══════════════════════════════════════════
+   SECTION PATH — colourful scroll route (SectionPath.jsx)
+   ═══════════════════════════════════════════ */
+
+@keyframes section-path-breathe {
+  0%, 100% { opacity: 0.16; }
+  50%      { opacity: 0.32; }
+}
+
+/* Lit waypoint nodes breathe gently. Overrides the inline opacity via a keyframe. */
+.section-path-halo {
+  animation: section-path-breathe 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-path-halo { animation: none; }
+}
+
+/* ═══════════════════════════════════════════
    CONTENT CONTAINER
    ═══════════════════════════════════════════ */
 
