@@ -10,6 +10,15 @@ import { useRef, useEffect, useCallback, useState } from 'react'
 const ACCENT = '#00d4ff'                 // site accent — the through-line
 const OBSTACLE_COLORS = ['#c05cff', '#ff5ca8', '#8a6cff'] // demoted violet/magenta
 
+// Shared road model. Lane u ∈ [0,1] across the drivable road; `persp` is the
+// perspective factor at a given depth (0 at the horizon, 1 at the near plane).
+// Player and obstacles BOTH map through this, so collision can be tested in
+// lane space and everything lines up visually. LANE_MIN/MAX bound both, so
+// there is no empty edge to hide in.
+const LANE_MIN = 0.12
+const LANE_MAX = 0.88
+const roadX = (w, u, persp) => w * 0.5 + (u - 0.5) * w * 0.9 * persp
+
 function drawCar(ctx, x, y, w, h) {
     ctx.save()
     ctx.shadowColor = 'rgba(0,212,255,0.7)'
@@ -95,14 +104,19 @@ function randomObstacleColor() {
     return OBSTACLE_COLORS[Math.floor(Math.random() * OBSTACLE_COLORS.length)]
 }
 
+const randomLane = () => Math.random() * (LANE_MAX - LANE_MIN) + LANE_MIN
+
 export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
     const canvasRef = useRef(null)
-    const [isGameRunning, setIsGameRunning] = useState(false)
-    const [isIntroVisible, setIsIntroVisible] = useState(true)
-    const [isIntroFading, setIsIntroFading] = useState(false)
-    const [isGameOver, setIsGameOver] = useState(false)
+    // 'intro' | 'running' | 'paused' | 'over' — mirrored into phaseRef so the
+    // single game loop can read it without being torn down on every change.
+    const [phase, setPhase] = useState('intro')
     const [distance, setDistance] = useState(0)
+    const phaseRef = useRef('intro')
     const keysRef = useRef({ left: false, right: false })
+    const cbRef = useRef({ onPlayStart, onGameStateChange })
+    cbRef.current = { onPlayStart, onGameStateChange }
+
     const gameRef = useRef({
         carX: 0.5,
         speed: 2,
@@ -116,42 +130,24 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
         initialized: false,
     })
 
-    const handlePlay = () => {
-        onPlayStart?.()
-        onGameStateChange?.(true)
-        setIsIntroFading(true)
-        setTimeout(() => {
-            setIsIntroVisible(false)
-            setIsGameRunning(true)
-        }, 350)
-    }
-
-    const handleToggleGame = () => {
-        setIsGameRunning((prev) => {
-            const next = !prev
-            onGameStateChange?.(next)
-            return next
-        })
-    }
-
-    const pauseGame = useCallback(() => {
-        setIsGameRunning((prev) => {
-            if (!prev) return prev
-            onGameStateChange?.(false)
-            return false
-        })
-    }, [onGameStateChange])
+    const go = useCallback((p) => {
+        phaseRef.current = p
+        setPhase(p)
+        cbRef.current.onGameStateChange?.(p === 'running')
+    }, [])
 
     const resetObstacles = useCallback((g) => {
-        // stagger obstacles behind the horizon so the run always starts clear
-        g.obstacles = OBSTACLE_COLORS.map((_, i) => ({
-            lane: Math.random() * 0.5 + 0.25,
-            z: -0.3 - i * 0.55,
+        // stagger obstacles behind the horizon so the run always starts clear and
+        // they arrive one at a time (always dodgeable). Three keeps comfortable
+        // gaps between cars while still covering the full width.
+        g.obstacles = Array.from({ length: 3 }, (_, i) => ({
+            lane: randomLane(),
+            z: -0.3 - i * 0.5,
             color: randomObstacleColor(),
         }))
     }, [])
 
-    const restartGame = useCallback(() => {
+    const resetGame = useCallback(() => {
         const g = gameRef.current
         g.carX = 0.5
         g.speed = 2
@@ -163,10 +159,21 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
         keysRef.current.left = false
         keysRef.current.right = false
         setDistance(0)
-        setIsGameOver(false)
-        onGameStateChange?.(true)
-        setIsGameRunning(true)
-    }, [onGameStateChange, resetObstacles])
+    }, [resetObstacles])
+
+    const startGame = useCallback(() => {
+        cbRef.current.onPlayStart?.()
+        go('running')
+    }, [go])
+
+    const restart = useCallback(() => {
+        resetGame()
+        go('running')
+    }, [resetGame, go])
+
+    const togglePause = useCallback(() => {
+        go(phaseRef.current === 'running' ? 'paused' : 'running')
+    }, [go])
 
     const initScene = useCallback(() => {
         const g = gameRef.current
@@ -186,6 +193,8 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
         g.initialized = true
     }, [resetObstacles])
 
+    // ── Single mount-once loop. All the run/pause/over branching reads phaseRef,
+    //    so the effect (and its window listeners) is created exactly once. ──
     useEffect(() => {
         const canvas = canvasRef.current
         if (!canvas) return
@@ -197,13 +206,19 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
             if (g.crashed) return
             g.crashed = true
             setDistance(Math.floor(g.distance))
-            setIsGameOver(true)
-            onGameStateChange?.(false)
-            setIsGameRunning(false)
+            go('over')
         }
 
         const handleKeyDown = (e) => {
-            if (e.code === 'Space') { if (isGameRunning) { e.preventDefault(); pauseGame() } return }
+            if (e.code === 'Space') {
+                if (phaseRef.current === 'running' || phaseRef.current === 'paused') {
+                    e.preventDefault()
+                    togglePause()
+                }
+                return
+            }
+            // Keep arrow keys from scrolling the page behind the modal
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault()
             if (['ArrowLeft', 'a', 'A'].includes(e.key)) keysRef.current.left = true
             if (['ArrowRight', 'd', 'D'].includes(e.key)) keysRef.current.right = true
         }
@@ -212,10 +227,10 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
             if (['ArrowRight', 'd', 'D'].includes(e.key)) keysRef.current.right = false
         }
         const handleTouch = (e) => {
-            if (!isGameRunning) return
-            const x = e.touches[0].clientX
-            const w = window.innerWidth
-            if (x < w / 2) { keysRef.current.left = true; keysRef.current.right = false }
+            if (phaseRef.current !== 'running') return
+            const rect = canvas.getBoundingClientRect()
+            const x = e.touches[0].clientX - rect.left
+            if (x < rect.width / 2) { keysRef.current.left = true; keysRef.current.right = false }
             else { keysRef.current.right = true; keysRef.current.left = false }
         }
         const handleTouchEnd = () => { keysRef.current.left = false; keysRef.current.right = false }
@@ -230,7 +245,8 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
             const rect = canvas.parentElement.getBoundingClientRect()
             canvas.width = rect.width * dpr
             canvas.height = rect.height * dpr
-            ctx.scale(dpr, dpr)
+            // setTransform (not scale) so repeated resizes never compound the dpr
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
             canvas.style.width = rect.width + 'px'
             canvas.style.height = rect.height + 'px'
         }
@@ -240,19 +256,22 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
 
         let lastTime = 0
         const loop = (time) => {
-            const dt = Math.min((time - lastTime) / 1000, 0.05)
+            const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0
             lastTime = time
             const w = canvas.width / (window.devicePixelRatio || 1)
             const h = canvas.height / (window.devicePixelRatio || 1)
             const g = gameRef.current
+            const running = phaseRef.current === 'running'
             const horizonY = h * 0.48
-            const px = w * 0.05 + w * 0.9 * g.carX
-            const playerW = 48
             const playerY = h - 35
+            // perspective factor at the player's row — player and obstacles share it
+            const perspPlayer = (playerY - horizonY) / (h - horizonY)
+            const px = roadX(w, g.carX, perspPlayer)
+            const playerW = 48
 
-            if (isGameRunning) {
-                if (keysRef.current.left) g.carX = Math.max(0.15, g.carX - 1.2 * dt)
-                if (keysRef.current.right) g.carX = Math.min(0.85, g.carX + 1.2 * dt)
+            if (running) {
+                if (keysRef.current.left) g.carX = Math.max(LANE_MIN, g.carX - 1.2 * dt)
+                if (keysRef.current.right) g.carX = Math.min(LANE_MAX, g.carX + 1.2 * dt)
                 g.roadOffset = (g.roadOffset + g.speed * dt) % 1
                 g.distance += g.speed * dt * 22
                 // gentle speed ramp — tops out so it stays an easter egg, not a boss fight
@@ -261,12 +280,12 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
                     obs.z += g.speed * dt * 0.3
                     if (obs.z > 1.15) {
                         obs.z = -0.15
-                        obs.lane = Math.random() * 0.5 + 0.25
+                        obs.lane = randomLane()
                         obs.color = randomObstacleColor()
                     }
                 })
                 g.hudTick += dt
-                if (g.hudTick > 0.15) {
+                if (g.hudTick > 0.12) {
                     g.hudTick = 0
                     setDistance(Math.floor(g.distance))
                 }
@@ -341,33 +360,31 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
                 ctx.beginPath(); ctx.moveTo(w * 0.5, horizonY); ctx.lineTo(bx, h); ctx.stroke()
             }
 
-            // ── Obstacles + collision ──
+            // ── Obstacles + collision (collision is tested in lane space) ──
             g.obstacles.forEach(obs => {
+                if (obs.z <= 0.02) return // still behind the horizon — hidden
                 const pz = Math.pow(obs.z, 1.8)
-                const ox = w * 0.5 + (obs.lane - 0.5) * w * 0.9 * pz
+                const ox = roadX(w, obs.lane, pz)
                 const oy = horizonY + (h - horizonY) * pz
                 const ow = 20 + pz * 30
-                const near = oy > playerY - 46 && oy < playerY + 12
-                if (oy > horizonY && oy < h - 20) drawObstacleCar(ctx, ox, oy, ow, 14 + pz * 22, obs.color, near && isGameRunning)
-                // collision: obstacle has reached the player's row and overlaps horizontally
-                if (isGameRunning && !g.crashed && near && Math.abs(ox - px) < (playerW + ow) / 2 * 0.6) {
+                const atPlayerRow = oy > playerY - 40 && oy < playerY + 14
+                if (oy > horizonY && oy < h - 16) drawObstacleCar(ctx, ox, oy, ow, 14 + pz * 22, obs.color, atPlayerRow && running)
+                if (running && !g.crashed && atPlayerRow && Math.abs(obs.lane - g.carX) < 0.11) {
                     endGame()
                 }
             })
 
             drawCar(ctx, px, playerY, playerW, 36)
 
-            if (!isGameOver) {
+            if (phaseRef.current !== 'over') {
                 ctx.fillStyle = 'rgba(220,245,255,0.28)'
                 ctx.font = '10px "Space Grotesk", sans-serif'; ctx.textAlign = 'center'
                 ctx.fillText('A / D · arrows · or tap the sides to steer', w / 2, h - 10)
             }
 
-            if (isGameRunning) animId = requestAnimationFrame(loop)
+            animId = requestAnimationFrame(loop)
         }
-
-        if (isGameRunning) animId = requestAnimationFrame(loop)
-        else loop(0)
+        animId = requestAnimationFrame(loop)
 
         return () => {
             if (animId) cancelAnimationFrame(animId)
@@ -377,53 +394,58 @@ export default function RetroCarGame({ onPlayStart, onGameStateChange }) {
             canvas.removeEventListener('touchend', handleTouchEnd)
             window.removeEventListener('resize', resize)
         }
-    }, [isGameRunning, isGameOver, pauseGame, initScene, onGameStateChange])
+        // Stable callbacks only — the loop itself is intentionally created once.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [go, togglePause, initScene])
 
-    useEffect(() => {
-        const handleScroll = () => {
-            if (!isGameRunning) return
-            const rect = canvasRef.current?.getBoundingClientRect()
-            if (rect && rect.bottom < 0) pauseGame()
-        }
-        window.addEventListener('scroll', handleScroll, { passive: true })
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [isGameRunning, pauseGame])
+    const hudVisible = phase === 'running' || phase === 'paused'
 
     return (
         <>
             <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 0, touchAction: 'none' }} />
 
-            {!isIntroVisible && !isGameOver && (
-                <button onClick={handleToggleGame} className="absolute right-4 top-8 z-20 rounded-lg border border-border-hover bg-black/40 px-3 py-1.5 text-xs font-semibold text-text-primary backdrop-blur-md transition-colors hover:bg-black/60">
-                    {isGameRunning ? 'Pause' : 'Resume'}
+            {/* Distance HUD — top-left, opposite the modal's ✕ */}
+            <div className={`absolute left-4 top-4 z-10 rounded-xl border border-border bg-black/40 px-4 py-2 text-sm text-text-primary backdrop-blur-md transition-opacity duration-300 ${hudVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className="text-xs text-text-tertiary">Distance</div>
+                <div className="font-heading text-lg font-bold text-accent">{distance}m</div>
+            </div>
+
+            {/* Pause / Resume — bottom-left, clear of the modal's ✕ (top-right) */}
+            {hudVisible && (
+                <button
+                    onClick={togglePause}
+                    className="absolute bottom-4 left-4 z-20 rounded-lg border border-border-hover bg-black/40 px-3 py-1.5 text-xs font-semibold text-text-primary backdrop-blur-md transition-colors hover:bg-black/60"
+                >
+                    {phase === 'running' ? 'Pause' : 'Resume'}
                 </button>
             )}
 
-            {isIntroVisible && (
-                <div className={`absolute inset-x-0 top-[calc(50%+9rem)] z-20 flex justify-center px-6 transition-opacity duration-500 ${isIntroFading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                    <div className="w-full max-w-xs rounded-xl border border-border-hover bg-black/50 p-4 text-center backdrop-blur-lg">
+            {phase === 'paused' && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                    <span className="font-heading text-sm uppercase tracking-[0.35em] text-text-secondary">Paused</span>
+                </div>
+            )}
+
+            {phase === 'intro' && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center px-6">
+                    <div className="w-full max-w-xs rounded-xl border border-border-hover bg-black/50 p-5 text-center backdrop-blur-lg">
                         <h3 className="font-heading text-lg font-semibold text-text-primary">Neon Rider</h3>
                         <p className="mt-1.5 text-xs text-text-secondary">The portfolio, after hours. Steer to survive the highway.</p>
-                        <button onClick={handlePlay} className="mt-4 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-bg transition-transform hover:scale-105">▶ Play</button>
+                        <button onClick={startGame} className="mt-4 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-bg transition-transform hover:scale-105">▶ Play</button>
                     </div>
                 </div>
             )}
 
-            {isGameOver && (
+            {phase === 'over' && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center px-6">
                     <div className="w-full max-w-xs rounded-xl border border-border-hover bg-black/60 p-5 text-center backdrop-blur-lg">
                         <p className="font-heading text-xs uppercase tracking-[0.2em] text-text-tertiary">Nice run</p>
                         <p className="mt-2 font-heading text-4xl font-bold text-accent">{distance}<span className="text-lg text-text-secondary">m</span></p>
-                        <button onClick={restartGame} className="mt-4 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-bg transition-transform hover:scale-105">↻ Retry</button>
+                        <button onClick={restart} className="mt-4 inline-flex items-center rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-bg transition-transform hover:scale-105">↻ Retry</button>
                         <p className="mt-3 text-[11px] text-text-tertiary">Now go read the boring stuff — hit <span className="text-text-secondary">Esc</span>.</p>
                     </div>
                 </div>
             )}
-
-            <div className={`absolute left-4 top-8 z-10 rounded-xl border border-border bg-black/40 px-4 py-2 text-sm text-text-primary backdrop-blur-md transition-opacity duration-300 ${isGameRunning ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                <div className="text-xs text-text-tertiary">Distance</div>
-                <div className="font-heading text-lg font-bold text-accent">{distance}m</div>
-            </div>
         </>
     )
 }
