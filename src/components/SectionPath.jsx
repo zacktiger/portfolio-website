@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useLayoutEffect } from 'react'
-import { motion, useScroll, useSpring, useReducedMotion } from 'framer-motion'
+import { motion, useScroll, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
 
 /*
  * SectionPath — a colorful "route" that threads down the page, connecting
@@ -50,6 +50,13 @@ export default function SectionPath() {
     const { scrollYProgress } = useScroll()
     const drawn = useSpring(scrollYProgress, { stiffness: 80, damping: 30, restDelta: 0.001 })
 
+    // The coloured ribbon is drawn from `floor` (a bit past the hero) up to 1 as
+    // you scroll, so it's already threaded through the hero at rest instead of
+    // appearing only once you start scrolling. `floor` is derived from the route
+    // geometry in measure() so it stays correct if the page height changes.
+    const pathLen = useMotionValue(1)
+    const floorRef = useRef(0.12)
+
     // Only render where there are side gutters to hold the route (matches the
     // dock nav / PixelModels, both hidden below 768px).
     useEffect(() => {
@@ -86,6 +93,37 @@ export default function SectionPath() {
             // reads as one uninterrupted thread, not a floating segment.
             const pathPts = [{ x: nodes[0].x, y: 0 }, ...nodes, { x: nodes[nodes.length - 1].x, y: h }]
 
+            // Rest-state draw amount: the fraction of the route that reaches the
+            // bottom of the hero, so the hero always shows a coloured segment.
+            // Approximated from the waypoint polyline length (close enough for a
+            // starting offset; the true arc scales the same way).
+            const homeEl = document.getElementById('home')
+            const heroBottom = homeEl ? homeEl.offsetTop + homeEl.offsetHeight : window.innerHeight
+            let total = 0
+            const segLen = []
+            for (let i = 0; i < pathPts.length - 1; i++) {
+                const l = Math.hypot(pathPts[i + 1].x - pathPts[i].x, pathPts[i + 1].y - pathPts[i].y)
+                segLen.push(l)
+                total += l
+            }
+            const target = Math.min(heroBottom, h)
+            let acc = 0
+            let lenAtHero = 0
+            for (let i = 0; i < pathPts.length - 1; i++) {
+                const y0 = pathPts[i].y
+                const y1 = pathPts[i + 1].y
+                if (y1 >= target) {
+                    const t = Math.max(0, Math.min(1, (target - y0) / Math.max(y1 - y0, 1)))
+                    lenAtHero = acc + segLen[i] * t
+                    break
+                }
+                acc += segLen[i]
+                lenAtHero = acc
+            }
+            const floor = total > 0 ? Math.min(Math.max(lenAtHero / total, 0.06), 0.25) : 0.12
+            floorRef.current = floor
+            if (!prefersReduced) pathLen.set(floor + drawn.get() * (1 - floor))
+
             setLayout({ w, h, d: buildPath(pathPts), nodes })
         }
 
@@ -109,6 +147,18 @@ export default function SectionPath() {
         }
     }, [])
 
+    // Map the scroll spring (0 → 1) onto the ribbon draw (floor → 1) so the
+    // hero starts already drawn. Reduced motion pins it fully drawn.
+    useEffect(() => {
+        if (prefersReduced) {
+            pathLen.set(1)
+            return
+        }
+        const apply = (v) => pathLen.set(floorRef.current + v * (1 - floorRef.current))
+        apply(drawn.get())
+        return drawn.on('change', apply)
+    }, [prefersReduced, drawn, pathLen])
+
     // Light nodes as their section crosses the vertical centre of the viewport.
     useEffect(() => {
         if (!layout) return
@@ -128,8 +178,9 @@ export default function SectionPath() {
     if (!enabled || !layout) return null
 
     const { w, h, d, nodes } = layout
-    // Reduced motion: show the whole route at rest, no scroll-linked drawing.
-    const pathLength = prefersReduced ? 1 : drawn
+    // Drawn from `floor` (hero already showing) up to 1 with scroll; pinned at 1
+    // for reduced motion. See the effects above.
+    const pathLength = pathLen
 
     return (
         <div
