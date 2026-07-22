@@ -1,14 +1,21 @@
-import { useRef, useState, useEffect, useLayoutEffect } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { motion, useScroll, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
 
 /*
  * SectionPath — a colorful "route" that threads down the page, connecting
- * every section with one continuous glowing ribbon. The line is measured
- * against the real section positions (#home … #contact), so it curves left
- * and right to pass through the vertical centre of each one, dropping a
- * glowing waypoint node on the way. The coloured stroke draws itself as you
- * scroll (Framer Motion `useScroll` → `pathLength`, same idea as
- * ScrollProgress), and each node lights up as it crosses the screen centre.
+ * every section with one continuous glowing ribbon, with a little car that
+ * rides down the route as you scroll.
+ *
+ * The line is measured against the real section positions (#home … #contact),
+ * so it curves left and right to pass through the vertical centre of each one,
+ * dropping a glowing waypoint node on the way. The coloured stroke draws itself
+ * up to the car (Framer Motion `useScroll`), so the car looks like it's laying
+ * the trail behind it.
+ *
+ * The car's progress along the path is keyed to the section nodes: scrolling
+ * drives it from one node to the next, and it *dwells* at each node (a flat
+ * spot in the scroll→progress map) with an arrival burst. Reversing the scroll
+ * makes it hop and flip 180° to face the new direction.
  *
  * It sits at z-2: above the ambient PixelModels floaters, behind the content.
  * Everything is pointer-events:none and aria-hidden — purely decorative.
@@ -20,6 +27,8 @@ const SECTION_IDS = ['home', 'about', 'skills', 'projects', 'github', 'writing',
 // One hue per node, sampled down the same ramp as the gradient below so a
 // node's colour matches the ribbon where it sits.
 const NODE_COLORS = ['#00d4ff', '#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#fbbf24', '#34d399']
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 
 // Smooth spline through points using a Catmull-Rom → cubic-bezier conversion.
 // Gives soft, auto-tangented curves as the route weaves side to side.
@@ -40,22 +49,72 @@ function buildPath(pts) {
     return d
 }
 
+/*
+ * ───────────────────────────────────────────────────────────────────────────
+ * Placeholder car — a simple top-view SVG so the motion/effects are reviewable.
+ * SWAP POINT: replace this component's body with the real 3D model, e.g. an
+ * @react-three/fiber <Canvas> loading `/car.glb` (drei's useGLTF). Keep it
+ * pointing along +X (nose to the right) at rest; the rig rotates it to the
+ * path tangent. Nothing else in this file needs to change.
+ * ───────────────────────────────────────────────────────────────────────────
+ */
+function CarGraphic() {
+    return (
+        <svg width="48" height="28" viewBox="0 0 48 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="path-car-body" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#5fe6ff" />
+                    <stop offset="1" stopColor="#0787c4" />
+                </linearGradient>
+            </defs>
+            {/* wheels */}
+            <rect x="12" y="1.5" width="9" height="4" rx="1.5" fill="#0c0c0c" />
+            <rect x="12" y="22.5" width="9" height="4" rx="1.5" fill="#0c0c0c" />
+            <rect x="30" y="1.5" width="9" height="4" rx="1.5" fill="#0c0c0c" />
+            <rect x="30" y="22.5" width="9" height="4" rx="1.5" fill="#0c0c0c" />
+            {/* body */}
+            <rect x="3" y="4.5" width="42" height="19" rx="8" fill="url(#path-car-body)" stroke="#bff4ff" strokeWidth="1" />
+            {/* cabin / roof */}
+            <rect x="14" y="8" width="16" height="12" rx="4" fill="#0a2a37" opacity="0.85" />
+            {/* windshield tint toward the nose */}
+            <path d="M30 9 L34 12 L34 16 L30 19 Z" fill="#0a2a37" opacity="0.7" />
+            {/* headlights at the front (right) */}
+            <rect x="43.5" y="8" width="2.5" height="3.5" rx="1" fill="#eafcff" />
+            <rect x="43.5" y="16.5" width="2.5" height="3.5" rx="1" fill="#eafcff" />
+        </svg>
+    )
+}
+
 export default function SectionPath() {
     const prefersReduced = useReducedMotion()
     const [enabled, setEnabled] = useState(false) // desktop only — no room in mobile gutters
     const [layout, setLayout] = useState(null) // { w, h, d, nodes }
     const [litCount, setLitCount] = useState(0) // how many nodes have crossed centre
+    const [burst, setBurst] = useState(null) // { i, key } — arrival effect at node i
     const rafRef = useRef(0)
 
     const { scrollYProgress } = useScroll()
     const drawn = useSpring(scrollYProgress, { stiffness: 80, damping: 30, restDelta: 0.001 })
 
-    // The coloured ribbon is drawn from `floor` (a bit past the hero) up to 1 as
-    // you scroll, so it's already threaded through the hero at rest instead of
-    // appearing only once you start scrolling. `floor` is derived from the route
-    // geometry in measure() so it stays correct if the page height changes.
-    const pathLen = useMotionValue(1)
-    const floorRef = useRef(0.12)
+    // Fraction (0→1) of the route drawn / travelled. Drives both the ribbon
+    // draw and the car position; kept in sync in updateCar().
+    const carProgress = useMotionValue(0)
+
+    // Path geometry, recomputed on measure: total length, each node's length
+    // fraction, and the scroll→progress keyframes (with dwell flats at nodes).
+    const geomRef = useRef(null)
+    const pathRef = useRef(null)
+
+    // Car DOM layers (transformed imperatively so scrolling never re-renders):
+    //   pos → point on path | hop → screen-space jump | spin → path tangent |
+    //   flip → 0/180 heading
+    const carPosRef = useRef(null)
+    const carHopRef = useRef(null)
+    const carSpinRef = useRef(null)
+    const carFlipRef = useRef(null)
+    const headingRef = useRef(1) // 1 = forward (down-path), -1 = reversed
+    const arrivedRef = useRef(-1) // last node the car "arrived" at
+    const lastScrollYRef = useRef(0)
 
     // Only render where there are side gutters to hold the route (matches the
     // dock nav / PixelModels, both hidden below 768px).
@@ -65,6 +124,65 @@ export default function SectionPath() {
         update()
         mq.addEventListener('change', update)
         return () => mq.removeEventListener('change', update)
+    }, [])
+
+    // scroll-progress value → route fraction, via the node keyframes (flat spots
+    // make the car dwell at each node).
+    const remap = useCallback((v) => {
+        const g = geomRef.current
+        if (!g) return v
+        const { xs, ys } = g
+        if (v <= xs[0]) return ys[0]
+        if (v >= xs[xs.length - 1]) return ys[ys.length - 1]
+        for (let i = 1; i < xs.length; i++) {
+            if (v <= xs[i]) {
+                const t = (v - xs[i - 1]) / (xs[i] - xs[i - 1])
+                return ys[i - 1] + (ys[i] - ys[i - 1]) * t
+            }
+        }
+        return ys[ys.length - 1]
+    }, [])
+
+    // Position + orient the car at route fraction t, and fire an arrival burst
+    // when it reaches a node.
+    const updateCar = useCallback((t) => {
+        const g = geomRef.current
+        const pathEl = pathRef.current
+        const pos = carPosRef.current
+        const spin = carSpinRef.current
+        if (!g || !pathEl || !pos || !spin) return
+
+        const L = t * g.total
+        const p = pathEl.getPointAtLength(L)
+        const a = pathEl.getPointAtLength(Math.min(L + 2, g.total))
+        const b = pathEl.getPointAtLength(Math.max(L - 2, 0))
+        const angle = (Math.atan2(a.y - b.y, a.x - b.x) * 180) / Math.PI
+        pos.style.transform = `translate(${p.x}px, ${p.y}px)`
+        spin.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`
+
+        // arrival: nearest node within a small fraction window
+        let nearest = -1
+        let best = 0.025
+        for (let i = 0; i < g.fracs.length; i++) {
+            const dd = Math.abs(g.fracs[i] - t)
+            if (dd < best) {
+                best = dd
+                nearest = i
+            }
+        }
+        if (nearest !== arrivedRef.current) {
+            arrivedRef.current = nearest
+            if (nearest !== -1) setBurst({ i: nearest, key: performance.now() })
+        }
+    }, [])
+
+    // Replay the hop keyframe (used on reverse).
+    const triggerHop = useCallback(() => {
+        const hop = carHopRef.current
+        if (!hop) return
+        hop.classList.remove('path-car__hop--go')
+        void hop.offsetWidth // restart the animation
+        hop.classList.add('path-car__hop--go')
     }, [])
 
     // Measure the page and build the route through each section's centre.
@@ -93,37 +211,6 @@ export default function SectionPath() {
             // reads as one uninterrupted thread, not a floating segment.
             const pathPts = [{ x: nodes[0].x, y: 0 }, ...nodes, { x: nodes[nodes.length - 1].x, y: h }]
 
-            // Rest-state draw amount: the fraction of the route that reaches the
-            // bottom of the hero, so the hero always shows a coloured segment.
-            // Approximated from the waypoint polyline length (close enough for a
-            // starting offset; the true arc scales the same way).
-            const homeEl = document.getElementById('home')
-            const heroBottom = homeEl ? homeEl.offsetTop + homeEl.offsetHeight : window.innerHeight
-            let total = 0
-            const segLen = []
-            for (let i = 0; i < pathPts.length - 1; i++) {
-                const l = Math.hypot(pathPts[i + 1].x - pathPts[i].x, pathPts[i + 1].y - pathPts[i].y)
-                segLen.push(l)
-                total += l
-            }
-            const target = Math.min(heroBottom, h)
-            let acc = 0
-            let lenAtHero = 0
-            for (let i = 0; i < pathPts.length - 1; i++) {
-                const y0 = pathPts[i].y
-                const y1 = pathPts[i + 1].y
-                if (y1 >= target) {
-                    const t = Math.max(0, Math.min(1, (target - y0) / Math.max(y1 - y0, 1)))
-                    lenAtHero = acc + segLen[i] * t
-                    break
-                }
-                acc += segLen[i]
-                lenAtHero = acc
-            }
-            const floor = total > 0 ? Math.min(Math.max(lenAtHero / total, 0.06), 0.25) : 0.12
-            floorRef.current = floor
-            if (!prefersReduced) pathLen.set(floor + drawn.get() * (1 - floor))
-
             setLayout({ w, h, d: buildPath(pathPts), nodes })
         }
 
@@ -147,40 +234,110 @@ export default function SectionPath() {
         }
     }, [])
 
-    // Map the scroll spring (0 → 1) onto the ribbon draw (floor → 1) so the
-    // hero starts already drawn. Reduced motion pins it fully drawn.
+    // Derive route geometry + scroll keyframes from the rendered path.
+    useEffect(() => {
+        if (!layout) return
+        const pathEl = pathRef.current
+        if (!pathEl) return
+        const total = pathEl.getTotalLength()
+        if (!total) return
+
+        const vh = window.innerHeight
+        const nodes = layout.nodes
+
+        // Each node's length fraction along the path (y is monotonic, so a
+        // binary search on the sampled point's y finds it).
+        const fracs = nodes.map((n) => {
+            let lo = 0
+            let hi = total
+            for (let k = 0; k < 22; k++) {
+                const mid = (lo + hi) / 2
+                if (pathEl.getPointAtLength(mid).y < n.y) lo = mid
+                else hi = mid
+            }
+            return lo / total
+        })
+
+        // Scroll-progress at which each node sits at the viewport centre.
+        const denom = Math.max(layout.h - vh, 1)
+        const stops = nodes.map((n) => clamp((n.y - vh / 2) / denom, 0, 1))
+
+        // Build the scroll→fraction keyframes with a flat "dwell" around each
+        // stop so the car pauses at every node.
+        const xs = []
+        const ys = []
+        for (let i = 0; i < nodes.length; i++) {
+            const prev = i > 0 ? stops[i - 1] : 0
+            const next = i < nodes.length - 1 ? stops[i + 1] : 1
+            const dw = Math.max(Math.min(stops[i] - prev, next - stops[i]) * 0.28, 0)
+            xs.push(clamp(stops[i] - dw, 0, 1))
+            ys.push(fracs[i])
+            xs.push(clamp(stops[i] + dw, 0, 1))
+            ys.push(fracs[i])
+        }
+        if (xs[0] > 0) {
+            xs.unshift(0)
+            ys.unshift(ys[0])
+        }
+        if (xs[xs.length - 1] < 1) {
+            xs.push(1)
+            ys.push(1)
+        }
+        // keep xs strictly increasing for the interpolation
+        for (let i = 1; i < xs.length; i++) if (xs[i] <= xs[i - 1]) xs[i] = xs[i - 1] + 1e-4
+
+        geomRef.current = { total, fracs, xs, ys }
+
+        const t = prefersReduced ? 1 : remap(drawn.get())
+        carProgress.set(t)
+        updateCar(t)
+        lastScrollYRef.current = window.scrollY
+    }, [layout, prefersReduced, remap, updateCar, drawn, carProgress])
+
+    // Drive the ribbon draw + car from the (spring-smoothed) scroll value.
     useEffect(() => {
         if (prefersReduced) {
-            pathLen.set(1)
+            carProgress.set(1)
             return
         }
-        const apply = (v) => pathLen.set(floorRef.current + v * (1 - floorRef.current))
+        const apply = (v) => {
+            const t = remap(v)
+            carProgress.set(t)
+            updateCar(t)
+        }
         apply(drawn.get())
         return drawn.on('change', apply)
-    }, [prefersReduced, drawn, pathLen])
+    }, [prefersReduced, drawn, carProgress, remap, updateCar])
 
-    // Light nodes as their section crosses the vertical centre of the viewport.
+    // Light nodes as they cross centre; flip the car when the scroll reverses.
     useEffect(() => {
         if (!layout) return
         const onScroll = () => {
-            const centre = window.scrollY + window.innerHeight / 2
+            const y = window.scrollY
+            const centre = y + window.innerHeight / 2
             let count = 0
-            for (const n of layout.nodes) {
-                if (centre >= n.y) count++
-            }
+            for (const n of layout.nodes) if (centre >= n.y) count++
             setLitCount(count)
+
+            if (!prefersReduced) {
+                const dir = y > lastScrollYRef.current + 1 ? 1 : y < lastScrollYRef.current - 1 ? -1 : 0
+                if (dir !== 0 && dir !== headingRef.current) {
+                    headingRef.current = dir
+                    const flip = carFlipRef.current
+                    if (flip) flip.style.transform = `rotate(${dir === -1 ? 180 : 0}deg)`
+                    triggerHop()
+                }
+                lastScrollYRef.current = y
+            }
         }
         onScroll()
         window.addEventListener('scroll', onScroll, { passive: true })
         return () => window.removeEventListener('scroll', onScroll)
-    }, [layout])
+    }, [layout, prefersReduced, triggerHop])
 
     if (!enabled || !layout) return null
 
     const { w, h, d, nodes } = layout
-    // Drawn from `floor` (hero already showing) up to 1 with scroll; pinned at 1
-    // for reduced motion. See the effects above.
-    const pathLength = pathLen
 
     return (
         <div
@@ -201,20 +358,20 @@ export default function SectionPath() {
                     </linearGradient>
                 </defs>
 
-                {/* Faint full route — the "track" the coloured ribbon draws over */}
-                <path d={d} stroke="rgba(255,255,255,0.06)" strokeWidth={1.5} strokeLinecap="round" />
+                {/* Faint full route — also the geometry source for the car (pathRef) */}
+                <path ref={pathRef} d={d} stroke="rgba(255,255,255,0.06)" strokeWidth={1.5} strokeLinecap="round" />
 
                 {/* Layered translucent strokes fake a soft bloom without a filter
-                    (cheap on a full-page-tall SVG). All share the scroll draw. */}
-                <motion.path d={d} stroke="url(#section-path-grad)" strokeWidth={10} strokeLinecap="round" opacity={0.1} style={{ pathLength }} />
-                <motion.path d={d} stroke="url(#section-path-grad)" strokeWidth={5} strokeLinecap="round" opacity={0.28} style={{ pathLength }} />
-                <motion.path d={d} stroke="url(#section-path-grad)" strokeWidth={2.5} strokeLinecap="round" opacity={0.95} style={{ pathLength }} />
+                    (cheap on a full-page-tall SVG). All draw up to the car. */}
+                <motion.path d={d} stroke="url(#section-path-grad)" strokeWidth={10} strokeLinecap="round" opacity={0.1} style={{ pathLength: carProgress }} />
+                <motion.path d={d} stroke="url(#section-path-grad)" strokeWidth={5} strokeLinecap="round" opacity={0.28} style={{ pathLength: carProgress }} />
+                <motion.path d={d} stroke="url(#section-path-grad)" strokeWidth={2.5} strokeLinecap="round" opacity={0.95} style={{ pathLength: carProgress }} />
 
                 {/* Waypoint nodes */}
                 {nodes.map((n, i) => {
                     const lit = i < litCount
                     return (
-                        <g key={SECTION_IDS[i]} style={{ transition: 'opacity 0.5s ease' }}>
+                        <g key={SECTION_IDS[i]}>
                             {/* soft glow blob */}
                             <circle
                                 cx={n.x} cy={n.y} r={14} fill={n.color}
@@ -234,7 +391,29 @@ export default function SectionPath() {
                         </g>
                     )
                 })}
+
+                {/* Arrival burst — expands + fades when the car reaches a node */}
+                {burst && nodes[burst.i] && (
+                    <circle
+                        key={burst.key}
+                        cx={nodes[burst.i].x} cy={nodes[burst.i].y} r={9}
+                        fill="none" stroke={nodes[burst.i].color} strokeWidth={2}
+                        className="path-car-burst"
+                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+                    />
+                )}
             </svg>
+
+            {/* The car — imperatively transformed; see the ref layers above */}
+            <div ref={carPosRef} className="path-car">
+                <div ref={carHopRef} className="path-car__hop">
+                    <div ref={carSpinRef} className="path-car__spin">
+                        <div ref={carFlipRef} className="path-car__flip">
+                            <CarGraphic />
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
