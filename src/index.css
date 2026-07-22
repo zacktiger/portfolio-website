@@ -556,8 +556,52 @@ body.screen-shake {
   animation: section-path-breathe 3s ease-in-out infinite;
 }
 
+/* ── Car that rides the route ── */
+.path-car {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+.path-car__spin {
+  transform-origin: center;
+  will-change: transform;
+}
+.path-car__flip {
+  transform-origin: center;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.path-car svg {
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.55));
+}
+
+/* Screen-space hop, replayed on every scroll-direction reversal */
+.path-car__hop--go {
+  animation: path-car-hop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes path-car-hop {
+  0%   { transform: translateY(0) scale(1); }
+  45%  { transform: translateY(-18px) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Node arrival ring */
+.path-car-burst {
+  animation: path-car-burst 0.7s ease-out forwards;
+}
+@keyframes path-car-burst {
+  from { transform: scale(0.4); opacity: 0.85; }
+  to   { transform: scale(2.6); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .section-path-halo { animation: none; }
+  .path-car__hop--go { animation: none; }
+  .path-car__flip { transition: none; }
+  .path-car-burst { animation: none; opacity: 0; }
 }
 
 /* ═══════════════════════════════════════════
