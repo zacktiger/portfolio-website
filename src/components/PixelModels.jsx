@@ -190,7 +190,7 @@ export default function PixelModels() {
     return (
         <div
             className="fixed inset-0 z-0 pointer-events-none"
-            style={{ opacity: 0.55 }}
+            style={{ opacity: 0.7 }}
             aria-hidden="true"
         >
             <Canvas
