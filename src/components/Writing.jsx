@@ -171,7 +171,7 @@ export default function Writing() {
                         <p className="section-label">Writing</p>
                         <h2 className="section-title mb-3">
                             Notes &amp;<br />
-                            <span className="serif-accent">ideas.</span>
+                            <span className="serif-accent holo-text">ideas.</span>
                         </h2>
                         <p className="font-body text-text-tertiary text-sm max-w-md">
                             Long-form essays on the ideas I'm thinking through —

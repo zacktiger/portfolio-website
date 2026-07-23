@@ -177,7 +177,7 @@ export default function Projects() {
                     <p className="section-label">Projects</p>
                     <h2 className="section-title mb-4">
                         Things I've<br />
-                        <span className="serif-accent">built.</span>
+                        <span className="serif-accent holo-text">built.</span>
                     </h2>
                     <p className="font-body text-text-tertiary text-sm max-w-lg">
                         Production-grade applications — from enterprise SaaS to AI-powered
@@ -198,7 +198,7 @@ export default function Projects() {
                     className="mt-20 mb-4 flex items-baseline gap-4"
                 >
                     <h3 className="font-heading text-xl font-bold text-text-primary whitespace-nowrap">
-                        More on <span className="serif-accent">GitHub</span>
+                        More on <span className="serif-accent holo-text">GitHub</span>
                     </h3>
                     <div className="h-px flex-1 bg-white/[0.07] self-center" />
                     <a

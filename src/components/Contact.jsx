@@ -50,7 +50,7 @@ export default function Contact() {
                     <p className="section-label">Contact</p>
                     <h2 className="section-title">
                         Let's work<br />
-                        <span className="serif-accent">together.</span>
+                        <span className="serif-accent holo-text">together.</span>
                     </h2>
                 </motion.div>
 
