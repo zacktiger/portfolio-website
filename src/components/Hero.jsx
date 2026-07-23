@@ -214,6 +214,14 @@ function ParticleCanvas() {
 /* ───────────────────────────────────────────
    Hero Section
    ─────────────────────────────────────────── */
+const HERO_SPARKLES = [
+    { top: '-4%', left: '6%', size: 22, delay: '0s' },
+    { top: '52%', left: '92%', size: 16, delay: '0.5s' },
+    { top: '78%', left: '18%', size: 18, delay: '1s' },
+    { top: '10%', left: '78%', size: 14, delay: '1.6s' },
+    { top: '60%', left: '2%', size: 20, delay: '0.9s' },
+]
+
 export default function Hero() {
     return (
         <section
@@ -263,12 +271,22 @@ export default function Hero() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                    className="font-heading font-800 tracking-tight mb-6"
+                    className="font-heading font-800 tracking-tight mb-6 relative"
                     style={{ fontSize: 'clamp(3rem, 10vw, 8rem)', lineHeight: 0.95, fontWeight: 800 }}
                 >
                     <span className="text-text-primary">KSHITIJ</span>
                     <br />
-                    <span className="text-accent">BACHHAV</span>
+                    <span className="holo-text">BACHHAV</span>
+                    {HERO_SPARKLES.map((s, i) => (
+                        <span
+                            key={i}
+                            aria-hidden="true"
+                            className="hero-sparkle"
+                            style={{ top: s.top, left: s.left, fontSize: s.size, animationDelay: s.delay }}
+                        >
+                            ✦
+                        </span>
+                    ))}
                 </motion.h1>
 
                 {/* Subtitle — typewriter roles */}

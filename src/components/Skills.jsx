@@ -55,7 +55,7 @@ export default function Skills() {
                     <p className="section-label">Skills</p>
                     <h2 className="section-title">
                         Tools I work<br />
-                        <span className="serif-accent">with daily.</span>
+                        <span className="serif-accent holo-text">with daily.</span>
                     </h2>
                 </motion.div>
 

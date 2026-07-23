@@ -172,6 +172,60 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-accent);
 }
 
+/* Rainbow "holo" text — animated spectrum gradient clipped to the glyphs.
+   Reused by the hero name accent (BACHHAV) and the serif heading accents. */
+.holo-text {
+  background: linear-gradient(
+    90deg,
+    #ff3d81, #ff8a00, #ffe600, #29ffa4, #00d4ff, #7c4dff, #ff3d81
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: holo-pan 6s linear infinite;
+  filter: drop-shadow(0 0 18px rgba(124, 77, 255, 0.25));
+}
+
+@keyframes holo-pan {
+  to {
+    background-position: 300% center;
+  }
+}
+
+/* Twinkling star glitters — decorative, hero name only */
+.hero-sparkle {
+  position: absolute;
+  pointer-events: none;
+  color: #fff;
+  text-shadow: 0 0 6px #fff, 0 0 12px #7c4dff;
+  animation: sparkle-twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(90deg);
+  }
+}
+
+/* Reduced-motion: freeze the rainbow to a static spectrum and drop the twinkle */
+@media (prefers-reduced-motion: reduce) {
+  .holo-text {
+    animation: none;
+  }
+  .hero-sparkle {
+    animation: none;
+    opacity: 0.55;
+  }
+}
+
 /* Ghost outline numerals (01 / 02 / 03) */
 .ghost-num {
   font-family: var(--font-heading);

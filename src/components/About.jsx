@@ -69,7 +69,7 @@ export default function About() {
                     <p className="section-label">About</p>
                     <h2 className="section-title">
                         Building systems that<br />
-                        <span className="serif-accent">scale and ship.</span>
+                        <span className="serif-accent holo-text">scale and ship.</span>
                     </h2>
                 </motion.div>
 
