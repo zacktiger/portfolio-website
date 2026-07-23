@@ -188,7 +188,11 @@ export default function SectionPath() {
         const spin = carSpinRef.current
         if (!g || !pathEl || !pos || !spin) return
 
-        const L = t * g.total
+        // Sit the car a little AHEAD of the drawn ribbon tip (which ends at t)
+        // along its heading, so the trail ends at the car's tail and it looks like
+        // it's pulling the trail rather than sitting on top of it.
+        const LEAD = 20
+        const L = clamp(t * g.total + LEAD * headingRef.current, 0, g.total)
         const p = pathEl.getPointAtLength(L)
         // Wider look-ahead window → a smoother, anticipatory tangent through curves.
         const a = pathEl.getPointAtLength(Math.min(L + 7, g.total))
