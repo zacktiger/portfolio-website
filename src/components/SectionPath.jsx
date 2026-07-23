@@ -135,6 +135,9 @@ export default function SectionPath() {
     const litCountRef = useRef(0) // last lit-node count pushed to state (dedupes renders)
     const lastTRef = useRef(null) // last route fraction, for deadzoned heading changes
     const carAngleRef = useRef(null) // eased heading, so the car turns into corners
+    // Target orientation handed to the 3D rig (PathCarModel eases toward it each
+    // frame): yaw = steer heading (world radians), bank = lean into the bend.
+    const carDriveRef = useRef({ yaw: 0, bank: 0, pitch: 0 })
 
     // Only render where there are side gutters to hold the route (matches the
     // dock nav / PixelModels, both hidden below 768px).
@@ -199,11 +202,15 @@ export default function SectionPath() {
         cur += delta * 0.18
         carAngleRef.current = cur
         pos.style.transform = `translate(${p.x}px, ${p.y}px)`
-        spin.style.transform = `translate(-50%, -50%) rotate(${cur}deg)`
+        // spin only centres the car on the path point now — the heading is applied
+        // in 3D by the rig (carDriveRef below), so the model turns and banks
+        // instead of the flat canvas spinning.
+        spin.style.transform = 'translate(-50%, -50%)'
 
-        // Flip to face the car's travel direction, from its own motion along the
-        // route. A small deadzone ignores spring jitter; because the car doesn't
-        // move during a node dwell, it won't spuriously flip there either.
+        // Detect a scroll-direction reversal (car faces back down the route) and
+        // trigger the hop, from the car's own motion. A small deadzone ignores
+        // spring jitter; the car doesn't move during a node dwell so it won't
+        // spuriously flip there either.
         if (!prefersReduced) {
             const prevT = lastTRef.current
             if (prevT === null) {
@@ -212,13 +219,20 @@ export default function SectionPath() {
                 const dir = t > prevT ? 1 : -1
                 if (dir !== headingRef.current) {
                     headingRef.current = dir
-                    const flip = carFlipRef.current
-                    if (flip) flip.style.transform = `rotate(${dir === -1 ? 180 : 0}deg)`
                     triggerHop()
                 }
                 lastTRef.current = t
             }
         }
+
+        // Feed the 3D rig: yaw = eased screen heading mapped to model yaw (plus a
+        // half-turn when reversing), bank = lean proportional to how hard the car
+        // is turning into the bend (its heading error). Signs/gain match the
+        // tilted camera in PathCarModel.
+        const DEG = Math.PI / 180
+        const drive = carDriveRef.current
+        drive.yaw = -cur * DEG + (headingRef.current === -1 ? Math.PI : 0)
+        drive.bank = prefersReduced ? 0 : clamp(-delta * DEG * 2.2, -0.32, 0.32)
 
         // Light every node the car has reached (keyed to the same t that positions
         // it), so a waypoint lights exactly as the car arrives.
@@ -446,7 +460,7 @@ export default function SectionPath() {
                         <div ref={carFlipRef} className="path-car__flip">
                             <CarBoundary fallback={<CarGraphic />}>
                                 <Suspense fallback={<CarGraphic />}>
-                                    <PathCarModel />
+                                    <PathCarModel drive={carDriveRef} />
                                 </Suspense>
                             </CarBoundary>
                         </div>
