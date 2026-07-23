@@ -133,6 +133,7 @@ export default function SectionPath() {
     const headingRef = useRef(1) // 1 = forward (down-path), -1 = reversed
     const arrivedRef = useRef(-1) // last node the car "arrived" at
     const lastScrollYRef = useRef(0)
+    const carAngleRef = useRef(null) // eased heading, so the car turns into corners
 
     // Only render where there are side gutters to hold the route (matches the
     // dock nav / PixelModels, both hidden below 768px).
@@ -172,11 +173,19 @@ export default function SectionPath() {
 
         const L = t * g.total
         const p = pathEl.getPointAtLength(L)
-        const a = pathEl.getPointAtLength(Math.min(L + 2, g.total))
-        const b = pathEl.getPointAtLength(Math.max(L - 2, 0))
-        const angle = (Math.atan2(a.y - b.y, a.x - b.x) * 180) / Math.PI
+        // Wider look-ahead window → a smoother, anticipatory tangent through curves.
+        const a = pathEl.getPointAtLength(Math.min(L + 7, g.total))
+        const b = pathEl.getPointAtLength(Math.max(L - 7, 0))
+        const target = (Math.atan2(a.y - b.y, a.x - b.x) * 180) / Math.PI
+        // Ease the heading toward the tangent (shortest way round) so the car
+        // steers into turns instead of snapping to the new direction.
+        let cur = carAngleRef.current
+        if (cur === null) cur = target
+        const delta = ((target - cur + 540) % 360) - 180
+        cur += delta * 0.18
+        carAngleRef.current = cur
         pos.style.transform = `translate(${p.x}px, ${p.y}px)`
-        spin.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`
+        spin.style.transform = `translate(-50%, -50%) rotate(${cur}deg)`
 
         // arrival: nearest node within a small fraction window
         let nearest = -1

@@ -35,13 +35,17 @@ function CarModel() {
     return <primitive object={obj} rotation={MODEL_ROTATION} />
 }
 
-// Hero-ish view from above and slightly in front, so the low-poly car reads as
-// a car (not just its roof). Screen +X stays to the right for the rig.
+// Straight top-down ORTHOGRAPHIC view. Orthographic removes perspective
+// foreshortening, so the car keeps a constant apparent size no matter which way
+// it points; top-down means the rig's 2D rotation reads as natural steering (a
+// map/racing-game view) rather than a tilted sprite pinwheeling. Screen "up" is
+// -Z so +X stays to the right, matching the rig's east-facing convention.
 function TopCamera() {
     const { camera } = useThree()
     useEffect(() => {
-        camera.position.set(0, 2.6, 1.7)
-        camera.up.set(0, 1, 0)
+        camera.position.set(0, 5, 0)
+        camera.up.set(0, 0, -1)
+        camera.zoom = 24
         camera.lookAt(0, 0, 0)
         camera.updateProjectionMatrix()
     }, [camera])
@@ -52,15 +56,16 @@ export default function PathCarModel() {
     return (
         <div style={{ width: 64, height: 64 }}>
             <Canvas
+                orthographic
                 dpr={0.75}
                 gl={{ antialias: false, alpha: true }}
-                camera={{ fov: 32, position: [0, 2.6, 1.7] }}
+                camera={{ zoom: 24, position: [0, 5, 0], near: 0.1, far: 100 }}
                 style={{ imageRendering: 'pixelated', overflow: 'visible' }}
             >
                 <TopCamera />
-                <ambientLight intensity={0.9} />
-                <directionalLight position={[2, 5, 3]} intensity={1.6} />
-                <directionalLight position={[-3, 2, -2]} intensity={0.5} color="#8fd3ff" />
+                <ambientLight intensity={0.95} />
+                <directionalLight position={[2, 5, 1]} intensity={1.5} />
+                <directionalLight position={[-3, 3, -2]} intensity={0.5} color="#8fd3ff" />
                 <Suspense fallback={null}>
                     <CarModel />
                 </Suspense>
