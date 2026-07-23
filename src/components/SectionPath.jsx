@@ -5,7 +5,7 @@ import { motion, useScroll, useSpring, useMotionValue, useReducedMotion } from '
 const PathCarModel = lazy(() => import('./PathCarModel'))
 
 /*
- * SectionPath — a colorful "route" that threads down the page, connecting
+ * SectionPath — a glowing cyan "route" that threads down the page, connecting
  * every section with one continuous glowing ribbon, with a little car that
  * rides down the route as you scroll.
  *
@@ -27,9 +27,10 @@ const PathCarModel = lazy(() => import('./PathCarModel'))
 // Anchors to route through (kept in sync with Navbar's navItems / section ids)
 const SECTION_IDS = ['home', 'about', 'skills', 'projects', 'github', 'writing', 'contact']
 
-// One hue per node, sampled down the same ramp as the gradient below so a
-// node's colour matches the ribbon where it sits.
-const NODE_COLORS = ['#00d4ff', '#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#fbbf24', '#34d399']
+// One shade per node, sampled down the same cyan ramp as the gradient below so
+// a node's colour matches the ribbon where it sits. Kept in the site's single
+// accent (cyan) rather than a rainbow, so the route reads as part of the brand.
+const NODE_COLORS = ['#0787c4', '#00a6d6', '#00c4f0', '#00d4ff', '#3fe0ff', '#7febff', '#b9f4ff']
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 
@@ -107,7 +108,7 @@ export default function SectionPath() {
     const prefersReduced = useReducedMotion()
     const [enabled, setEnabled] = useState(false) // desktop only — no room in mobile gutters
     const [layout, setLayout] = useState(null) // { w, h, d, nodes }
-    const [litCount, setLitCount] = useState(0) // how many nodes have crossed centre
+    const [litCount, setLitCount] = useState(0) // how many nodes the car has reached
     const [burst, setBurst] = useState(null) // { i, key } — arrival effect at node i
     const rafRef = useRef(0)
 
@@ -132,7 +133,8 @@ export default function SectionPath() {
     const carFlipRef = useRef(null)
     const headingRef = useRef(1) // 1 = forward (down-path), -1 = reversed
     const arrivedRef = useRef(-1) // last node the car "arrived" at
-    const lastScrollYRef = useRef(0)
+    const litCountRef = useRef(0) // last lit-node count pushed to state (dedupes renders)
+    const lastTRef = useRef(null) // last route fraction, for deadzoned heading changes
     const carAngleRef = useRef(null) // eased heading, so the car turns into corners
 
     // Only render where there are side gutters to hold the route (matches the
@@ -162,8 +164,21 @@ export default function SectionPath() {
         return ys[ys.length - 1]
     }, [])
 
-    // Position + orient the car at route fraction t, and fire an arrival burst
-    // when it reaches a node.
+    // Replay the hop keyframe (used on reverse).
+    const triggerHop = useCallback(() => {
+        const hop = carHopRef.current
+        if (!hop) return
+        hop.classList.remove('path-car__hop--go')
+        void hop.offsetWidth // restart the animation
+        hop.classList.add('path-car__hop--go')
+    }, [])
+
+    // Position + orient the car at route fraction t. This is the single source of
+    // truth for everything keyed to the car: it also lights the nodes the car has
+    // reached, flips the car to face its travel direction, and fires an arrival
+    // burst — all from the same t, so nothing drifts out of sync with the car.
+    // (Lighting and the flip used to be driven off raw scrollY, which ran ahead
+    // of the spring-smoothed car.)
     const updateCar = useCallback((t) => {
         const g = geomRef.current
         const pathEl = pathRef.current
@@ -187,6 +202,34 @@ export default function SectionPath() {
         pos.style.transform = `translate(${p.x}px, ${p.y}px)`
         spin.style.transform = `translate(-50%, -50%) rotate(${cur}deg)`
 
+        // Flip to face the car's travel direction, from its own motion along the
+        // route. A small deadzone ignores spring jitter; because the car doesn't
+        // move during a node dwell, it won't spuriously flip there either.
+        if (!prefersReduced) {
+            const prevT = lastTRef.current
+            if (prevT === null) {
+                lastTRef.current = t
+            } else if (Math.abs(t - prevT) > 0.0015) {
+                const dir = t > prevT ? 1 : -1
+                if (dir !== headingRef.current) {
+                    headingRef.current = dir
+                    const flip = carFlipRef.current
+                    if (flip) flip.style.transform = `rotate(${dir === -1 ? 180 : 0}deg)`
+                    triggerHop()
+                }
+                lastTRef.current = t
+            }
+        }
+
+        // Light every node the car has reached (keyed to the same t that positions
+        // it), so a waypoint lights exactly as the car arrives.
+        let count = 0
+        for (let i = 0; i < g.fracs.length; i++) if (t >= g.fracs[i]) count++
+        if (count !== litCountRef.current) {
+            litCountRef.current = count
+            setLitCount(count)
+        }
+
         // arrival: nearest node within a small fraction window
         let nearest = -1
         let best = 0.025
@@ -201,16 +244,7 @@ export default function SectionPath() {
             arrivedRef.current = nearest
             if (nearest !== -1) setBurst({ i: nearest, key: performance.now() })
         }
-    }, [])
-
-    // Replay the hop keyframe (used on reverse).
-    const triggerHop = useCallback(() => {
-        const hop = carHopRef.current
-        if (!hop) return
-        hop.classList.remove('path-car__hop--go')
-        void hop.offsetWidth // restart the animation
-        hop.classList.add('path-car__hop--go')
-    }, [])
+    }, [prefersReduced, triggerHop])
 
     // Measure the page and build the route through each section's centre.
     useLayoutEffect(() => {
@@ -221,8 +255,10 @@ export default function SectionPath() {
 
             const cx = w / 2
             // Swing the route out toward the gutters so waypoints sit beside the
-            // content, not on it — while staying clear of the right-edge dock nav.
-            const amp = Math.min(w * 0.4, w / 2 - 90)
+            // content, not on it. Cap the swing at (half-width − 130px) so a node
+            // (plus the car's ~32px half-width) stays clear of the right-edge dock
+            // nav even on narrow desktops (~768–900px), where it used to overlap.
+            const amp = Math.min(w * 0.4, w / 2 - 130)
 
             const nodes = SECTION_IDS.map((id, i) => {
                 const el = document.getElementById(id)
@@ -318,7 +354,6 @@ export default function SectionPath() {
         const t = prefersReduced ? 1 : remap(drawn.get())
         carProgress.set(t)
         updateCar(t)
-        lastScrollYRef.current = window.scrollY
     }, [layout, prefersReduced, remap, updateCar, drawn, carProgress])
 
     // Drive the ribbon draw + car from the (spring-smoothed) scroll value.
@@ -336,32 +371,6 @@ export default function SectionPath() {
         return drawn.on('change', apply)
     }, [prefersReduced, drawn, carProgress, remap, updateCar])
 
-    // Light nodes as they cross centre; flip the car when the scroll reverses.
-    useEffect(() => {
-        if (!layout) return
-        const onScroll = () => {
-            const y = window.scrollY
-            const centre = y + window.innerHeight / 2
-            let count = 0
-            for (const n of layout.nodes) if (centre >= n.y) count++
-            setLitCount(count)
-
-            if (!prefersReduced) {
-                const dir = y > lastScrollYRef.current + 1 ? 1 : y < lastScrollYRef.current - 1 ? -1 : 0
-                if (dir !== 0 && dir !== headingRef.current) {
-                    headingRef.current = dir
-                    const flip = carFlipRef.current
-                    if (flip) flip.style.transform = `rotate(${dir === -1 ? 180 : 0}deg)`
-                    triggerHop()
-                }
-                lastScrollYRef.current = y
-            }
-        }
-        onScroll()
-        window.addEventListener('scroll', onScroll, { passive: true })
-        return () => window.removeEventListener('scroll', onScroll)
-    }, [layout, prefersReduced, triggerHop])
-
     if (!enabled || !layout) return null
 
     const { w, h, d, nodes } = layout
@@ -375,13 +384,13 @@ export default function SectionPath() {
             <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" style={{ display: 'block' }}>
                 <defs>
                     <linearGradient id="section-path-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={h}>
-                        <stop offset="0" stopColor="#00d4ff" />
-                        <stop offset="0.16" stopColor="#38bdf8" />
-                        <stop offset="0.33" stopColor="#818cf8" />
-                        <stop offset="0.5" stopColor="#c084fc" />
-                        <stop offset="0.66" stopColor="#f472b6" />
-                        <stop offset="0.83" stopColor="#fbbf24" />
-                        <stop offset="1" stopColor="#34d399" />
+                        <stop offset="0" stopColor="#0787c4" />
+                        <stop offset="0.16" stopColor="#00a6d6" />
+                        <stop offset="0.33" stopColor="#00c4f0" />
+                        <stop offset="0.5" stopColor="#00d4ff" />
+                        <stop offset="0.66" stopColor="#3fe0ff" />
+                        <stop offset="0.83" stopColor="#7febff" />
+                        <stop offset="1" stopColor="#b9f4ff" />
                     </linearGradient>
                 </defs>
 
