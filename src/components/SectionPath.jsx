@@ -5,7 +5,7 @@ import { motion, useScroll, useSpring, useMotionValue, useReducedMotion } from '
 const PathCarModel = lazy(() => import('./PathCarModel'))
 
 /*
- * SectionPath — a glowing cyan "route" that threads down the page, connecting
+ * SectionPath — a colorful "route" that threads down the page, connecting
  * every section with one continuous glowing ribbon, with a little car that
  * rides down the route as you scroll.
  *
@@ -27,10 +27,9 @@ const PathCarModel = lazy(() => import('./PathCarModel'))
 // Anchors to route through (kept in sync with Navbar's navItems / section ids)
 const SECTION_IDS = ['home', 'about', 'skills', 'projects', 'github', 'writing', 'contact']
 
-// One shade per node, sampled down the same cyan ramp as the gradient below so
-// a node's colour matches the ribbon where it sits. Kept in the site's single
-// accent (cyan) rather than a rainbow, so the route reads as part of the brand.
-const NODE_COLORS = ['#0787c4', '#00a6d6', '#00c4f0', '#00d4ff', '#3fe0ff', '#7febff', '#b9f4ff']
+// One hue per node, sampled down the same ramp as the gradient below so a
+// node's colour matches the ribbon where it sits.
+const NODE_COLORS = ['#00d4ff', '#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#fbbf24', '#34d399']
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 
@@ -384,13 +383,13 @@ export default function SectionPath() {
             <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" style={{ display: 'block' }}>
                 <defs>
                     <linearGradient id="section-path-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={h}>
-                        <stop offset="0" stopColor="#0787c4" />
-                        <stop offset="0.16" stopColor="#00a6d6" />
-                        <stop offset="0.33" stopColor="#00c4f0" />
-                        <stop offset="0.5" stopColor="#00d4ff" />
-                        <stop offset="0.66" stopColor="#3fe0ff" />
-                        <stop offset="0.83" stopColor="#7febff" />
-                        <stop offset="1" stopColor="#b9f4ff" />
+                        <stop offset="0" stopColor="#00d4ff" />
+                        <stop offset="0.16" stopColor="#38bdf8" />
+                        <stop offset="0.33" stopColor="#818cf8" />
+                        <stop offset="0.5" stopColor="#c084fc" />
+                        <stop offset="0.66" stopColor="#f472b6" />
+                        <stop offset="0.83" stopColor="#fbbf24" />
+                        <stop offset="1" stopColor="#34d399" />
                     </linearGradient>
                 </defs>
 
