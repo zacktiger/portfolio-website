@@ -566,6 +566,11 @@ body.screen-shake {
   will-change: transform;
 }
 .path-car__spin {
+  /* Shrink-wrap to the car's own width so translate(-50%) centres it on the
+     path point. Without this the box inherits width:0 from .path-car and the
+     horizontal -50% resolves to 0, leaving the car sitting ~half its width to
+     the right of the line. */
+  width: max-content;
   transform-origin: center;
   will-change: transform;
 }

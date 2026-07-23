@@ -287,9 +287,10 @@ export default function SectionPath() {
                 return { x: cx + dir * amp, y, color: NODE_COLORS[i % NODE_COLORS.length] }
             })
 
-            // Anchor the ribbon to the very top and bottom of the page so it
-            // reads as one uninterrupted thread, not a floating segment.
-            const pathPts = [{ x: nodes[0].x, y: 0 }, ...nodes, { x: nodes[nodes.length - 1].x, y: h }]
+            // Thread in from the top edge for a clean lead-in, then END at the last
+            // section node (contact) — the car "arrives" there instead of driving
+            // on into the empty footer and clipping the page bottom.
+            const pathPts = [{ x: nodes[0].x, y: 0 }, ...nodes]
 
             setLayout({ w, h, d: buildPath(pathPts), nodes })
         }
@@ -411,8 +412,10 @@ export default function SectionPath() {
                     </linearGradient>
                 </defs>
 
-                {/* Faint full route — also the geometry source for the car (pathRef) */}
-                <path ref={pathRef} d={d} stroke="rgba(255,255,255,0.06)" strokeWidth={1.5} strokeLinecap="round" />
+                {/* Full route, shown faintly in its own colours from the start so the
+                    page reads as a colourful route even before the car has drawn over
+                    it. Also the geometry source for the car (pathRef). */}
+                <path ref={pathRef} d={d} stroke="url(#section-path-grad)" strokeWidth={2} strokeLinecap="round" opacity={0.16} />
 
                 {/* Layered translucent strokes fake a soft bloom without a filter
                     (cheap on a full-page-tall SVG). All draw up to the car. */}
@@ -434,12 +437,12 @@ export default function SectionPath() {
                             {/* ring */}
                             <circle
                                 cx={n.x} cy={n.y} r={6} fill="none" stroke={n.color} strokeWidth={1.5}
-                                style={{ opacity: lit ? 0.9 : 0.3, transition: 'opacity 0.5s ease' }}
+                                style={{ opacity: lit ? 0.9 : 0.5, transition: 'opacity 0.5s ease' }}
                             />
                             {/* core */}
                             <circle
                                 cx={n.x} cy={n.y} r={3} fill={n.color}
-                                style={{ opacity: lit ? 1 : 0.45, transition: 'opacity 0.5s ease' }}
+                                style={{ opacity: lit ? 1 : 0.7, transition: 'opacity 0.5s ease' }}
                             />
                         </g>
                     )
