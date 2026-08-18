@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { PenLine, ArrowUpRight, Clock, Rss } from 'lucide-react'
 import SpotlightCard from './SpotlightCard'
-import { posts, writingProfile } from '../data/portfolioData'
+import { writingProfile } from '../data/portfolioData'
+import useMediumPosts from '../hooks/useMediumPosts'
 
 const fadeUp = {
     initial: { opacity: 0, y: 30 },
@@ -154,6 +155,10 @@ function ComingSoon() {
    Writing Section
    ─────────────────────────────────────────── */
 export default function Writing() {
+    // Pulled live from Medium via `/api/medium`; falls back to the posts
+    // bundled in `portfolioData.js` when the feed can't be reached.
+    const { posts } = useMediumPosts()
+
     const hasPosts = posts.length > 0
     // Match the column count to the number of posts so a short list never
     // leaves an empty trailing column (2 posts in a 3-col grid looked lopsided).

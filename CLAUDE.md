@@ -11,6 +11,7 @@ A single-page personal portfolio site (Kshitij Bachhav) built with React 19 + Vi
 - `npm run dev` — start Vite dev server (default `http://localhost:5173`)
 - `npm run build` — production build to `dist/`
 - `npm run preview` — serve the production build locally
+- `npm run refresh:posts` — re-bake the offline copy of the Medium posts into `portfolioData.js` (optional; the live site doesn't depend on it)
 
 ## Pages
 
@@ -23,6 +24,13 @@ There is no lint script, no test runner, and no TypeScript configured in this re
 **Single-page composition.** `src/App.jsx` renders one document: `Navbar`, then a `<main>` with `Hero → About → Skills → Projects → Contact` sections separated by a `Divider`, then `Footer`, plus fixed-position overlay components (`CustomCursor`, `EasterEgg`) mounted at the root. Sections are plain `<section id="...">` elements; the id (`home`, `about`, `skills`, `projects`, `contact`) is the anchor used for both nav scroll-spy and `scrollIntoView` navigation — keep those ids in sync between `Navbar.jsx`'s `navItems` and each section component.
 
 **Content lives in data, not JSX.** `src/data/portfolioData.js` is the single source of truth for skills, projects, achievements, and contact info (email/LinkedIn/GitHub) — it's a plain JS module exporting arrays/objects consumed by `Skills.jsx`, `Projects.jsx`, and `Contact.jsx`. To add/edit a project or skill category, edit this file, not the component markup. Project entries reference images by path (e.g. `/project-saas.png`) served from `public/`.
+
+**The writing section is live, not authored.** `Writing.jsx` is the one section whose content is not hand-written: it renders whatever is on Medium right now. `useMediumPosts.js` fetches `/api/medium`, a Vercel serverless function (`api/medium.js`) that reads the RSS feed **server-side** — medium.com sends no `Access-Control-Allow-Origin` header, so the browser can never fetch that feed directly, and every public CORS proxy is rate-limited or intermittent. The response is cached at Vercel's edge for 5 minutes with `stale-while-revalidate`, so a newly published article appears within ~5 minutes with no edit and no redeploy.
+
+Three consequences worth knowing before touching this area:
+- **`posts` in `portfolioData.js` is a fallback, not the source of truth.** It renders instantly on load and stays on screen if the feed request fails, so the section is never empty. Editing it does not change what a visitor normally sees.
+- **`postOverrides` (keyed by canonical article URL) is where per-post polish goes** — a better `tag` or `blurb` than Medium's own. It is merged over both live and fallback posts, so the two render identically. Feed `<category>` slugs are title-cased automatically (`crude-oil` → `Crude Oil`).
+- **`api/_feed.js` is shared** by the serverless function, the dev middleware, and `scripts/refresh-posts.mjs` — parse fixes belong there. The leading underscore is what stops Vercel from routing it as its own endpoint. `vite.config.js` mounts that same handler at `/api/medium` during `npm run dev`, so local dev exercises the real path instead of silently falling back.
 
 **Styling: Tailwind v4 with CSS-first theming.** There's no `tailwind.config.js` — theme tokens (colors, fonts, shadows) are declared via `@theme` in `src/index.css` and consumed both as CSS vars (`var(--color-accent)`) and as generated Tailwind utility classes (`bg-bg`, `text-text-primary`, `border-border`, etc., derived from the `--color-*` names). The Vite plugin `@tailwindcss/vite` handles the build (see `vite.config.js`). When introducing a new color/font/shadow, add it to the `@theme` block rather than hardcoding hex values, so it stays usable as a utility class.
 

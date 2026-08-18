@@ -182,18 +182,18 @@ export const achievements = [
 
 // ══════════════════════════════════════════
 //  WRITING / POSTS
-//  The "coming soon" state on the site disappears automatically
-//  the moment this `posts` array has at least one entry.
-//  Copy this shape to add an article:
-//  {
-//      title: 'How I built a multi-tenant SaaS',
-//      blurb: 'A one-line teaser that reads like a magazine dek.',
-//      date: '2026-02-14',          // ISO date → rendered as "Feb 2026"
-//      readMinutes: 6,              // optional
-//      tag: 'Backend',             // optional category label
-//      url: 'https://medium.com/@handle/slug',
-//      cover: '/post-saas.png',    // optional; omit for a gradient fallback
-//  }
+//
+//  Articles are pulled live from Medium — publish a post and it appears in
+//  the "Notes & ideas" section on its own, with no edit here and no redeploy.
+//  `/api/medium` (see `api/medium.js`) reads the RSS feed server-side and
+//  caches it at the edge for ~5 minutes.
+//
+//  Nothing below needs routine maintenance. It exists for two jobs:
+//    1. `posts` — the copy baked into the build, shown if the feed is
+//       unreachable, so the section is never empty.
+//    2. `postOverrides` — optional per-article polish, keyed by canonical URL
+//       (the article link with any `?source=…` stripped). Any field you set
+//       wins over the feed; anything you leave out stays automatic.
 // ══════════════════════════════════════════
 
 export const writingProfile = {
@@ -201,23 +201,67 @@ export const writingProfile = {
     // Profile URL — powers the "Follow on Medium" button (coming-soon
     // state) and the "Read all on Medium →" link once posts exist.
     url: 'https://medium.com/@kshitijbachhav005',
+    // The feed the site reads. Change the handle here and in `api/medium.js`
+    // if the Medium account ever moves.
+    feed: 'https://medium.com/feed/@kshitijbachhav005',
 }
 
-export const posts = [
-    {
-        title: 'I Realized Oil Is an Economic Problem, Not a Geological One.',
+/**
+ * Hand-tuned fields for individual articles, keyed by canonical URL.
+ *
+ * Medium's feed gives a usable blurb (the post's subtitle) and a tag (its
+ * first Medium tag, title-cased), but those are not always the framing you'd
+ * choose for a portfolio card. Override just the field you want:
+ *
+ *   'https://medium.com/@handle/some-slug-abc123': {
+ *       tag: 'Economics',
+ *       blurb: 'A sharper one-line dek than the subtitle.',
+ *   }
+ */
+export const postOverrides = {
+    'https://medium.com/@kshitijbachhav005/i-realized-oil-is-an-economic-problem-not-a-geological-one-060bdbebf102': {
+        tag: 'Economics',
         blurb:
             'Why a barrel of oil that technically exists underground can still be worth nothing — and how that quirk of geology quietly shapes U.S.–Saudi relations.',
+    },
+    'https://medium.com/@kshitijbachhav005/why-even-superpowers-cant-win-wars-anymore-f8f82d89a2eb': {
+        tag: 'Geopolitics',
+    },
+    'https://medium.com/@kshitijbachhav005/the-geography-of-power-centralized-states-decentralized-states-and-the-primate-city-629ba0836a72': {
+        tag: 'Geopolitics',
+    },
+}
+
+/**
+ * Offline fallback, rendered only when `/api/medium` cannot be reached (local
+ * `vite dev` without `vercel dev`, a Medium outage, a request timeout).
+ *
+ * It does not need to stay in sync with Medium — treat it as the "worst case"
+ * snapshot a visitor sees. Refresh it whenever you like with:
+ *     npm run refresh:posts
+ */
+export const posts = [
+    {
+        title: 'The Geography of Power: Centralized States, Decentralized States, and the Primate City',
+        blurb: 'A country’s political structure is often visible on its map.',
+        date: '2026-08-18',
+        readMinutes: 6,
+        tag: 'Geopolitics',
+        url: 'https://medium.com/@kshitijbachhav005/the-geography-of-power-centralized-states-decentralized-states-and-the-primate-city-629ba0836a72',
+        cover: 'https://cdn-images-1.medium.com/max/1200/1*el9fg57NdzMM3zkAS5yAfw.png',
+    },
+    {
+        title: 'I Realized Oil Is an Economic Problem, Not a Geological One.',
+        blurb: 'Why a barrel of oil that technically exists underground can still be worth nothing — and how that quirk of geology quietly shapes U.S.–Saudi relations.',
         date: '2026-07-19',
-        readMinutes: 8,
+        readMinutes: 9,
         tag: 'Economics',
         url: 'https://medium.com/@kshitijbachhav005/i-realized-oil-is-an-economic-problem-not-a-geological-one-060bdbebf102',
         cover: 'https://cdn-images-1.medium.com/max/1200/1*jA3qCnqRxeGN9Bw5u4JZyg.jpeg',
     },
     {
-        title: "Why Even Superpowers Can't Win Wars Anymore",
-        blurb:
-            'Russia and the U.S. both struggle against far smaller nations like Ukraine and Iran — a look at why drones, political risk, and the end of total war have made decisive victory nearly impossible.',
+        title: 'Why Even Superpowers Can’t Win Wars Anymore',
+        blurb: 'Military rankings feel almost absurd nowadays, right? Russia sits at number two, the US at number one undisputed. And yet both are visibly struggling to break the spirit of…',
         date: '2026-04-18',
         readMinutes: 5,
         tag: 'Geopolitics',
