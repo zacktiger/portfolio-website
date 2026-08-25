@@ -425,7 +425,362 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top;
+  object-position: top center;
+}
+
+/* ═══════════════════════════════════════════
+   FEATURED PROJECT CARD — the bounded surface a case study rides on
+
+   The horizontal track slides these sideways as you scroll. Full-bleed
+   content on the page background gave the motion nothing to read against:
+   mid-transition you saw one case study's prose and the next one's metric
+   rail side by side with no boundary, which looks like a broken layout
+   rather than like two cards passing. An edge fixes that on its own.
+
+   The background is opaque on purpose. It occludes the PixelModels floaters
+   and the SectionPath ribbon, which is why a wireframe blob no longer lands
+   on the "74 ms" label — the decorative layer passes visibly BEHIND the card
+   instead of being clipped out of the gutter.
+   ═══════════════════════════════════════════ */
+
+.project-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    radial-gradient(120% 90% at 12% 0%, rgba(0, 212, 255, 0.05), transparent 58%),
+    linear-gradient(168deg, #151515 0%, #101010 55%, #0d0d0d 100%);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.6),
+    0 2px 0 rgba(255, 255, 255, 0.03) inset;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+/* Accent hairline along the top edge, brightest at the left */
+.project-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 212, 255, 0.5),
+    rgba(0, 212, 255, 0.08) 42%,
+    transparent 78%
+  );
+  pointer-events: none;
+}
+
+.project-card:hover {
+  border-color: rgba(0, 212, 255, 0.16);
+  box-shadow:
+    0 32px 90px rgba(0, 0, 0, 0.68),
+    0 0 60px rgba(0, 212, 255, 0.05),
+    0 2px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.project-card__inner {
+  padding: clamp(1.75rem, 2.8vw, 2.75rem);
+  height: 100%;
+}
+
+/*
+ * The screenshot rail-slot.
+ *
+ * `flex: 1 1 auto; min-height: 0` is the whole trick behind a track whose
+ * cards all share one height. The rail's other children are intrinsically
+ * sized, so this is the only thing that can give: on a tall window it is a
+ * generous figure, on a 768px laptop it quietly becomes a strip, and the
+ * prose beside it never moves. Without `min-height: 0` a flex item refuses to
+ * shrink below its content and the card grows instead — which is how a 1024px
+ * screenshot used to push the card 63px past each end of an overflow-hidden
+ * frame and cut the Code / Live Demo links off.
+ *
+ * 120px is the floor at which the figure stops being readable as a screenshot;
+ * below that it is not worth the space and the picture is dropped instead.
+ */
+.project-card__figure {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 1.75rem;
+  max-width: 40rem;
+}
+
+/*
+ * The figure is a fixed-aspect asset shown in a slot whose height is whatever
+ * the card has left, so its bottom edge is a crop wherever it lands. Fading
+ * the last 22% says "this continues" instead of leaving a row of UI sliced
+ * through the middle against a hard border.
+ */
+.project-card__figure .project-visual {
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 78%, transparent 100%);
+  border-bottom: 0;
+}
+
+@media (max-height: 780px) {
+  .project-card__figure {
+    display: none;
+  }
+}
+
+/*
+ * Inside a bounded panel the editorial tilt reads as a misaligned image rather
+ * than as a deliberate one — the card's own straight edge and radius sit right
+ * next to it and give the eye a reference the full-bleed layout never had.
+ */
+.project-card .project-visual,
+.project-card .project-row:hover .project-visual {
+  transform: none;
+}
+
+.project-card:hover .project-visual {
+  transform: scale(1.012);
+}
+
+/*
+ * An off-centre card is dimmed and part-way off screen. Blocking the pointer
+ * keeps its links from stealing a click aimed at the card in the middle.
+ * Focus is deliberately NOT blocked — pointer-events doesn't affect keyboard
+ * navigation, and the tab order is the only way through the track without a
+ * mouse.
+ */
+.project-card--away {
+  pointer-events: none;
+}
+
+/*
+ * The track's peeking neighbours dissolve into the gutter rather than running
+ * off a hard edge — and, at the right, rather than sliding under the dock nav,
+ * where a dim half-card showing through the icon rail just read as debris.
+ *
+ * The fade has to be measured against where the dock actually starts, not just
+ * be "wider than the dock". The dock is 58px wide at a 24px offset, so its
+ * near edge is 82px in — and a 120px ramp is still at 67% opacity there, which
+ * is why a card's prose was legible straight through the icons mid-slide. At
+ * 190px it is down to 43%, and the off-centre card's own falloff takes the
+ * rest. 190px is also exactly LANE, so the mask and the width cap are derived
+ * from the same clearance.
+ *
+ * The centred card is 980px wide inside a >=1360px frame and is never touched.
+ */
+.track-mask {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 190px,
+    #000 calc(100% - 190px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 190px,
+    #000 calc(100% - 190px),
+    transparent 100%
+  );
+}
+
+/* Progress ticks under the track — also the control for it */
+.track-tick {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.track-tick__bar {
+  display: block;
+  width: 100%;
+  height: 1px;
+  transition: background-color 0.5s ease, height 0.3s ease;
+}
+
+.track-tick:hover .track-tick__bar,
+.track-tick[aria-current='true'] .track-tick__bar {
+  height: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-card,
+  .track-tick__bar {
+    transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   METRIC STACK — what a featured project leads with
+
+   Three measurements in the pinned rail beside each case study. They stay on
+   screen while the prose scrolls past, so the numbers are the constant and
+   the explanation is the variable. The value is set large in the heading face
+   because it is the argument; the label carries the units and the caveat.
+   ═══════════════════════════════════════════ */
+
+.metric-stack {
+  margin-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.metric-item {
+  padding: 0.85rem 0 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.5s ease;
+}
+
+.project-row:hover .metric-item {
+  border-bottom-color: rgba(0, 212, 255, 0.16);
+}
+
+.metric-value {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-label {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* ═══════════════════════════════════════════
+   PROJECT ARCHIVE — a filtered grid, not a scroll
+
+   Twenty-one repositories as one hairline row each ran 1,931px — 2.1 screens
+   of a section that is already the longest on the page, with the middle
+   column wrapping to three lines and the right third empty. The same repos
+   as a three-column card grid fit in about half that, and the category
+   filter replaces five stacked group headings with one row of chips: the
+   section stops growing when a category is picked instead of scrolling
+   further.
+   ═══════════════════════════════════════════ */
+
+.archive-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.archive-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.015);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: color 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.archive-chip:hover {
+  color: var(--color-text-primary);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.archive-chip[aria-pressed='true'] {
+  color: var(--color-accent);
+  border-color: rgba(0, 212, 255, 0.32);
+  background: var(--color-accent-dim);
+}
+
+.archive-chip__count {
+  font-size: 9.5px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.archive-chip[aria-pressed='true'] .archive-chip__count {
+  color: var(--color-accent);
+  opacity: 0.7;
+}
+
+.archive-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .archive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .archive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.archive-card {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.1rem 1.15rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.014);
+  text-decoration: none;
+  transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+}
+
+.archive-card:hover {
+  border-color: rgba(0, 212, 255, 0.2);
+  background: rgba(0, 212, 255, 0.035);
+  transform: translateY(-2px);
+}
+
+/* Description is clamped so every card in a row is the same height and the
+   grid stays a grid — an un-clamped two-liner next to a four-liner is what
+   made the old list feel ragged. */
+.archive-card__desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-tertiary);
+}
+
+.archive-card__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive-card { transition: border-color 0.3s ease, background-color 0.3s ease; }
+  .archive-card:hover { transform: none; }
 }
 
 /* ═══════════════════════════════════════════

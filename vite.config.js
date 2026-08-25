@@ -7,32 +7,41 @@ import tailwindcss from '@tailwindcss/vite'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /**
- * Serves `/api/medium` during `npm run dev`.
- *
- * In production that route is a Vercel function; the dev server knows nothing
- * about `api/`, so without this the writing section would always render its
- * offline fallback locally. Reusing the same handler keeps dev honest.
+ * Routes that are Vercel functions in production and nothing at all locally.
+ * Add a file to `api/` and its route here, and `npm run dev` exercises the
+ * same handler the deployed site runs.
  */
-function mediumApiDevServer() {
+const API_ROUTES = ['/api/medium', '/api/repos']
+
+/**
+ * Serves the `api/` handlers during `npm run dev`.
+ *
+ * The dev server knows nothing about `api/`, so without this the writing
+ * section and the project archive would always render their offline
+ * fallbacks locally. Reusing the same handlers keeps dev honest.
+ */
+function vercelApiDevServer() {
     return {
-        name: 'medium-api-dev-server',
+        name: 'vercel-api-dev-server',
         apply: 'serve',
         configureServer(server) {
-            server.middlewares.use('/api/medium', async (req, res) => {
-                const { default: handler } = await server.ssrLoadModule('/api/medium.js')
-                await handler(req, {
-                    setHeader: (key, value) => res.setHeader(key, value),
-                    status(code) {
-                        res.statusCode = code
-                        return this
-                    },
-                    json(body) {
-                        res.setHeader('Content-Type', 'application/json')
-                        res.end(JSON.stringify(body))
-                        return this
-                    },
+            for (const route of API_ROUTES) {
+                server.middlewares.use(route, async (req, res) => {
+                    const { default: handler } = await server.ssrLoadModule(`${route}.js`)
+                    await handler(req, {
+                        setHeader: (key, value) => res.setHeader(key, value),
+                        status(code) {
+                            res.statusCode = code
+                            return this
+                        },
+                        json(body) {
+                            res.setHeader('Content-Type', 'application/json')
+                            res.end(JSON.stringify(body))
+                            return this
+                        },
+                    })
                 })
-            })
+            }
         },
     }
 }
@@ -41,7 +50,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    mediumApiDevServer(),
+    vercelApiDevServer(),
   ],
   build: {
     rollupOptions: {
