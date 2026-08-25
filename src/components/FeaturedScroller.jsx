@@ -111,21 +111,6 @@ const easeInOutCubic = (t) =>
 
 /** One case study, laid out to fit inside a single bounded card. */
 function ProjectCard({ project, index, total, pinned, width, height, pos }) {
-    const cardRef = useRef(null)
-    const [isHit, setIsHit] = useState(false)
-
-    // React to laser shots from CustomCursor
-    useEffect(() => {
-        const el = cardRef.current
-        if (!el) return
-        const onHit = () => {
-            setIsHit(true)
-            setTimeout(() => setIsHit(false), 350)
-        }
-        el.addEventListener('laser-hit', onHit)
-        return () => el.removeEventListener('laser-hit', onHit)
-    }, [])
-
     /*
      * Falloff either side of the centred card.
      *
@@ -156,11 +141,10 @@ function ProjectCard({ project, index, total, pinned, width, height, pos }) {
 
     return (
         <Wrapper
-            ref={cardRef}
             data-project-id={project.id}
             className={`project-row group relative flex-shrink-0 ${
                 pinned ? 'project-card' : 'w-full py-16 sm:py-20'
-            } ${isHit ? 'laser-flash' : ''} ${pinned && !isActive ? 'project-card--away' : ''}`}
+            } ${pinned && !isActive ? 'project-card--away' : ''}`}
             {...motionProps}
         >
             <div className={pinned ? 'project-card__inner' : 'content-container'}>

@@ -849,41 +849,6 @@ body.sidebar-open { overflow: hidden; }
 }
 
 /* ═══════════════════════════════════════════
-   SCREEN SHAKE (easter egg)
-   ═══════════════════════════════════════════ */
-
-@keyframes shake {
-  0%, 100% { transform: translate(0, 0); }
-  15% { transform: translate(-3px, -2px); }
-  35% { transform: translate(4px, 1px); }
-  55% { transform: translate(-2px, 3px); }
-  75% { transform: translate(3px, -1px); }
-}
-
-body.screen-shake {
-  animation: shake 80ms ease-in-out;
-}
-
-/* ═══════════════════════════════════════════
-   LASER HIT FLASH (cursor shoot mechanic)
-   ═══════════════════════════════════════════ */
-
-@keyframes laser-flash {
-  0% { filter: brightness(1); }
-  25% { filter: brightness(1.6) saturate(1.4); }
-  100% { filter: brightness(1); }
-}
-
-.laser-flash {
-  animation: laser-flash 350ms ease-out;
-}
-
-.laser-flash .spotlight-card {
-  border-color: rgba(0, 212, 255, 0.5);
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
-}
-
-/* ═══════════════════════════════════════════
    RESPONSIVE — hide dock on mobile
    ═══════════════════════════════════════════ */
 

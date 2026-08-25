@@ -196,14 +196,16 @@ export default function CustomCursor() {
         const projectBtn = hitEl?.closest('[data-project-id]')
 
         if (projectBtn) {
-            document.body.classList.add('screen-shake')
-            setTimeout(() => document.body.classList.remove('screen-shake'), 100)
+            /*
+             * Spark only. Clicking a card used to also shake the whole document
+             * for 80ms and run a `filter: brightness(1.6)` flash across the card
+             * for 350ms — and because the card's own Code / Live Demo links are
+             * inside `[data-project-id]`, that fired when someone was simply
+             * trying to follow a link. A page that jolts and flashes as you
+             * click through it reads as a rendering fault, not as feedback.
+             */
             particlesRef.current.push(...createParticles(x, y))
             runParticleLoop()
-            projectBtn.dispatchEvent(new CustomEvent('laser-hit', {
-                detail: { projectId: projectBtn.dataset.projectId },
-                bubbles: true,
-            }))
         }
     }, [runParticleLoop])
 

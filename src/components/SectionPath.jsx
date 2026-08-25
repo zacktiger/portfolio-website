@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useLayoutEffect, useCallback, lazy, Suspense, Component } from 'react'
-import { motion, useScroll, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
+import { motion, useScroll, useMotionValue, useReducedMotion } from 'framer-motion'
 
 // three.js car in its own chunk — keeps three off the initial bundle (like PixelModels)
 const PathCarModel = lazy(() => import('./PathCarModel'))
@@ -15,16 +15,21 @@ const PathCarModel = lazy(() => import('./PathCarModel'))
  * draws itself up to the car (Framer Motion `useScroll`), so the car looks like
  * it's laying the trail behind it.
  *
- * The car's progress along the path is keyed to those nodes: scrolling drives
- * it from one to the next, and it *dwells* at each node (a flat spot in the
- * scroll→progress map) with an arrival burst. Reversing the scroll makes it hop
- * and flip 180° to face the new direction.
+ * The car keeps ONE seat on screen (see CAR_SEAT) and the route flows past it:
+ * its document position is `scrollY + seat`, so it never travels up or down the
+ * viewport. What reads as motion is the route sliding by and the car steering
+ * into the bends, plus an arrival burst as each waypoint passes it. Reversing
+ * the scroll makes it hop and flip 180° to face the new direction.
  *
- * Two rules keep the route's rhythm tied to the page's rhythm rather than to
- * its pixel height, and both exist because breaking them looked broken:
- * waypoints are spaced by DISTANCE, not one per section (see MAX_NODE_GAP), and a
- * dwell is capped in pixels (see MAX_DWELL_PX) so the car can never idle its way
- * off the top of the viewport.
+ * That replaced a scroll→y map with a "dwell" at every waypoint. A dwell holds
+ * the car still in DOCUMENT space, so it slid the car up the screen and then
+ * raced it back down — a measured 557px sawtooth. It could not be tuned out,
+ * because any mapping whose y advances at a rate other than the scroll rate
+ * moves the car on screen; the identity map is the only one that does not.
+ *
+ * One rule still ties the route's rhythm to the page's rhythm rather than to
+ * its pixel height, and it exists because breaking it looked broken: waypoints
+ * are spaced by DISTANCE, not one per section (see MAX_NODE_GAP).
  *
  * It sits at z-2: above the ambient PixelModels floaters, behind the content.
  * Everything is pointer-events:none and aria-hidden — purely decorative.
@@ -67,40 +72,29 @@ const CONTENT_MAX = 1100
 const CONTENT_PAD = (w) => clamp(w * 0.05, 24, 80)
 
 /*
- * The longest a dwell may last, in pixels of scroll.
+ * Where the car sits on screen, as a fraction of the viewport height.
  *
- * The car freezes in DOCUMENT space while it dwells at a node, so every pixel
- * of dwell is a pixel it slides UP the viewport. The dwell used to be a flat
- * 28% of the gap to the nearest neighbouring node, which is fine between two
- * 900px sections and catastrophic around #projects: the gap there was ~3,200px,
- * so the car sat still for 896px of scroll on each side of the node — it left
- * the top of a 900px viewport entirely, then raced back down to catch up. A
- * dwell is a beat, not a stop, so it gets an absolute ceiling. 110px also
- * keeps the catch-up afterwards under ~1.3x scroll speed on the tightest gap
- * between two waypoints (1,000px), which reads as the car pulling away from a
- * stop rather than as it teleporting.
+ * The car does not travel down the viewport at all: it holds this one seat and
+ * the route flows past it, the way a car's own view of the road works. Its
+ * document position is therefore just `scrollY + CAR_SEAT * vh`, which makes
+ * its screen position exact by construction rather than something the scroll
+ * mapping has to be tuned to preserve.
+ *
+ * That replaces a scroll->y keyframe table with a "dwell" window at every
+ * waypoint. The intent there was a beat at each node, but a dwell holds the car
+ * still in DOCUMENT space, so every pixel of it slid the car up the viewport
+ * and the catch-up afterwards slid it back down — a 557px vertical sawtooth
+ * over a scroll, measured. Softening the dwell into a slow creep only halved
+ * it. The reason it could not be tuned away is structural: any mapping where
+ * the car's y advances at a rate other than the scroll rate moves the car on
+ * screen, so the only mapping that holds it still is the identity one.
+ *
+ * With the car fixed, motion is read from the route sliding past it and from
+ * the car steering into the bends — both of which survive the pinned card
+ * track, where the page behind the car is not scrolling and a car that also
+ * held its document position had nothing at all to move against.
  */
-const MAX_DWELL_PX = 64
-
-/*
- * How fast the car still moves through a dwell, as a fraction of its normal
- * speed down the page.
- *
- * A dwell used to be a genuinely FLAT segment in the scroll→y map: two
- * identical y values, so the car stopped dead. Because MAX_DWELL_PX caps the
- * HALF-width, that flat was 220px of scroll wide — a quarter of a screen at
- * every one of the eight waypoints, and a measured 214px sawtooth as the car
- * slid up the viewport and then raced back down. Inside #projects it was worse
- * than a stutter: a waypoint sits mid-way through the pinned card track, where
- * the page behind the car is pinned too, so a car that stops moving is a car
- * on a frozen screen. It read as the animation having broken.
- *
- * Creeping at 35% instead of stopping keeps the beat — the car still visibly
- * slows into a node and pulls away from it — while never producing a frame
- * where nothing at all has changed. It also cuts the drift the catch-up has to
- * undo from 110px per side to ~42px.
- */
-const DWELL_SPEED = 0.35
+const CAR_SEAT = 0.5
 
 /*
  * The route's sideways wander, as a fraction of the free lane.
@@ -226,15 +220,18 @@ export default function SectionPath() {
     const [burst, setBurst] = useState(null) // { i, key } — arrival effect at node i
     const rafRef = useRef(0)
 
-    const { scrollYProgress } = useScroll()
     /*
-     * Smoothing, not lag. The old 80/30 is heavily overdamped (ζ ≈ 1.7) and
-     * took the better part of a second to settle, so on any quick scroll the
-     * cards — which read raw scroll — moved at once and the car crawled after
-     * them. 190/34 keeps the same no-overshoot character (ζ ≈ 1.3) at roughly
-     * twice the natural frequency, which lands the car with the content.
+     * Raw page scroll, deliberately unsmoothed.
+     *
+     * This used to be a spring on scroll PROGRESS, and the spring is exactly
+     * what a fixed car seat cannot tolerate: a spring is a lag, and a lag is
+     * movement. It let the car sag down the screen during a fast scroll and
+     * float back up once the scroll stopped. The ribbon's draw comes off the
+     * car's own position (`carProgress`, set in updateCar), so dropping the
+     * spring keeps the trail ending exactly at the car rather than somewhere
+     * behind it.
      */
-    const drawn = useSpring(scrollYProgress, { stiffness: 190, damping: 34, restDelta: 0.001 })
+    const { scrollY } = useScroll()
 
     // Fraction (0→1) of the route drawn / travelled. Drives both the ribbon
     // draw and the car position; kept in sync in updateCar().
@@ -271,22 +268,14 @@ export default function SectionPath() {
         return () => mq.removeEventListener('change', update)
     }, [])
 
-    // scroll-progress value → document y, via the node keyframes (flat spots make
-    // the car dwell at each node). updateCar turns that y into a point on the
-    // route.
-    const remap = useCallback((v) => {
+    // Page scroll → the document y the car sits at. This is the identity map
+    // plus the car's seat, clamped to the span of the route, which is what
+    // keeps the car's SCREEN position constant no matter how the route bends.
+    const yForScroll = useCallback((sy) => {
         const g = geomRef.current
-        if (!g) return v
-        const { xs, ys } = g
-        if (v <= xs[0]) return ys[0]
-        if (v >= xs[xs.length - 1]) return ys[ys.length - 1]
-        for (let i = 1; i < xs.length; i++) {
-            if (v <= xs[i]) {
-                const t = (v - xs[i - 1]) / (xs[i] - xs[i - 1])
-                return ys[i - 1] + (ys[i] - ys[i - 1]) * t
-            }
-        }
-        return ys[ys.length - 1]
+        const seat = window.innerHeight * CAR_SEAT
+        if (!g) return sy + seat
+        return clamp(sy + seat, g.minY, g.maxY)
     }, [])
 
     // Replay the hop keyframe (used on reverse).
@@ -316,14 +305,25 @@ export default function SectionPath() {
         if (!g || !pathEl || !pos || !spin) return
 
         const t = g.fractionAtY(y)
-        carProgress.set(t)
 
-        // Sit the car a little AHEAD of the drawn ribbon tip (which ends at t)
-        // along its heading, so the trail ends at the car's tail and it looks like
-        // it's pulling the trail rather than sitting on top of it.
+        /*
+         * The car goes EXACTLY on the point for y, and the TRAIL is what gets
+         * held back — the reverse of the obvious arrangement, and the reason the
+         * seat is exact rather than approximate.
+         *
+         * Offsetting the car forward by LEAD along the path is the natural way
+         * to make it look like it is pulling the trail rather than sitting on
+         * top of it, but on any diagonal stretch that offset has a vertical
+         * component, so the car rose and fell by up to ±LEAD as the route
+         * changed angle — 40px of bob left over on a 768px window once the seat
+         * itself was fixed. Ending the trail LEAD short of the car instead
+         * leaves the same gap between its tail and the trail tip while leaving
+         * the car's own y untouched.
+         */
         const LEAD = 20
-        const L = clamp(t * g.total + LEAD * headingRef.current, 0, g.total)
+        const L = clamp(t * g.total, 0, g.total)
         const p = pathEl.getPointAtLength(L)
+        carProgress.set(clamp((L - LEAD * headingRef.current) / g.total, 0, 1))
         // Wider look-ahead window → a smoother, anticipatory tangent through curves.
         const a = pathEl.getPointAtLength(Math.min(L + 7, g.total))
         const b = pathEl.getPointAtLength(Math.max(L - 7, 0))
@@ -541,14 +541,28 @@ export default function SectionPath() {
                 } else {
                     own.forEach((n) => pathPts.push({ x: n.x, y: n.y }))
                 }
-                // The route ENDS at the last section (contact) — the car "arrives"
-                // there instead of driving on into the footer and clipping the
-                // page bottom — so that one gets no exit rail.
                 const exit = sec.top + sec.height - sec.inset
                 if (i < measured.length - 1 && exit > mid) {
                     pathPts.push({ x: railX(sec.dir, exit), y: exit })
                 }
             })
+            /*
+             * Run the last rail all the way to the foot of the page.
+             *
+             * The route used to stop at the middle of #contact so the car
+             * "arrived" there rather than driving on into the footer. With the
+             * car seated at a fixed height that ending becomes visible as the
+             * thing it was avoiding: the car's document y is scrollY + seat, so
+             * at the bottom of the page it needs the route to exist down to
+             * `h - vh/2`. Ending short of that clamps it, and a clamped car
+             * slides up the screen for the last few hundred pixels of scroll —
+             * the one bit of drift left, right where it is most noticeable.
+             *
+             * The extension is on the final section's own rail, so it adds no
+             * crossing, and it stays in the gutter clear of the footer's text.
+             */
+            const lastDir = measured[measured.length - 1].dir
+            pathPts.push({ x: railX(lastDir, h), y: h })
             // The spline inverts by y, and that inversion assumes y never goes
             // backwards. Rounding, and a section measuring shorter than its own
             // inset, are the two ways a duplicate or out-of-order y can slip in,
@@ -629,77 +643,37 @@ export default function SectionPath() {
             return (lo - 1 + f) / SAMPLES
         }
 
-        // Scroll-progress at which each node sits at the viewport centre.
-        const denom = Math.max(layout.h - vh, 1)
-        const stops = nodes.map((n) => clamp((n.y - vh / 2) / denom, 0, 1))
+        // The route's y span. `fractionAtY` inverts by y and its sample table
+        // covers exactly this range, so clamping the car into it is what stops
+        // a scroll position past the end of the route from being read as a
+        // fraction off the end of the path.
+        const minY = sampleY[0]
+        const maxY = sampleY[SAMPLES]
 
-        /*
-         * Build the scroll→y keyframes with a slow "dwell" around each stop, so
-         * the car eases through every node instead of stopping at it.
-         *
-         * The window is still capped in pixels (see MAX_DWELL_PX) — a
-         * proportional dwell lets the car slide off the top of the screen
-         * around a very tall section — but the two keyframes bracketing a stop
-         * are no longer the SAME y. They sit DWELL_SPEED of a normal advance
-         * either side of the node, so across the window the car still covers
-         * ground, just slowly. That distinction is the whole fix: a flat
-         * segment freezes the car in document space for the width of the
-         * window, and 220px of frozen car in the middle of the pinned card
-         * track — where the page behind it is not moving either — is a car that
-         * looks broken rather than one that looks like it is pausing.
-         */
-        const maxDwell = MAX_DWELL_PX / denom
-        const xs = []
-        const ys = []
-        for (let i = 0; i < nodes.length; i++) {
-            const prev = i > 0 ? stops[i - 1] : 0
-            const next = i < nodes.length - 1 ? stops[i + 1] : 1
-            const dw = Math.min(
-                Math.max(Math.min(stops[i] - prev, next - stops[i]) * 0.28, 0),
-                maxDwell
-            )
-            // How far the car creeps across half the window, in page pixels.
-            const creep = dw * denom * DWELL_SPEED
-            xs.push(clamp(stops[i] - dw, 0, 1))
-            ys.push(nodes[i].y - creep)
-            xs.push(clamp(stops[i] + dw, 0, 1))
-            ys.push(nodes[i].y + creep)
+        geomRef.current = {
+            total,
+            fractionAtY,
+            nodeYs: nodes.map((n) => n.y),
+            minY,
+            maxY,
         }
-        if (xs[0] > 0) {
-            xs.unshift(0)
-            ys.unshift(ys[0])
-        }
-        if (xs[xs.length - 1] < 1) {
-            xs.push(1)
-            ys.push(ys[ys.length - 1])
-        }
-        // keep xs strictly increasing for the interpolation
-        for (let i = 1; i < xs.length; i++) if (xs[i] <= xs[i - 1]) xs[i] = xs[i - 1] + 1e-4
-        // ...and ys non-decreasing. The creep either side of a stop can only
-        // reorder these where two nodes sit closer together than their own
-        // dwell windows, which subdividing a tall section can produce; the car
-        // is driven by this table, so a backwards step here would show up as it
-        // twitching upward mid-route.
-        for (let i = 1; i < ys.length; i++) if (ys[i] < ys[i - 1]) ys[i] = ys[i - 1]
 
-        geomRef.current = { total, fractionAtY, nodeYs: nodes.map((n) => n.y), xs, ys }
+        updateCar(prefersReduced ? maxY : yForScroll(window.scrollY))
+    }, [layout, prefersReduced, yForScroll, updateCar])
 
-        const y = prefersReduced ? ys[ys.length - 1] : remap(drawn.get())
-        updateCar(y)
-    }, [layout, prefersReduced, remap, updateCar, drawn, carProgress])
-
-    // Drive the ribbon draw + car from the (spring-smoothed) scroll value.
+    // Drive the car straight off page scroll — see CAR_SEAT for why this is
+    // deliberately unsmoothed.
     useEffect(() => {
         if (prefersReduced) {
             const g = geomRef.current
             carProgress.set(1)
-            if (g) updateCar(g.ys[g.ys.length - 1])
+            if (g) updateCar(g.maxY)
             return
         }
-        const apply = (v) => updateCar(remap(v))
-        apply(drawn.get())
-        return drawn.on('change', apply)
-    }, [prefersReduced, drawn, carProgress, remap, updateCar])
+        const apply = (sy) => updateCar(yForScroll(sy))
+        apply(window.scrollY)
+        return scrollY.on('change', apply)
+    }, [prefersReduced, scrollY, carProgress, yForScroll, updateCar])
 
     if (!enabled || !layout) return null
 
