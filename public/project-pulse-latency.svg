@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-labelledby="t d">
+<title id="t">The cache earns its place only because the feed is ranked</title>
+<desc id="d">Horizontal bar chart of feed latency at p50. A plain chronological join answers in 44 ms but applies no ranking. The hybrid warm cache answers a ranked feed in 74 ms, 92 ms at p95. Computing the same ranking per request takes 635 ms, 8.6 times slower at p50 and 11.2 times slower at p95.</desc>
+<rect width="800" height="500" fill="#121212"/>
+<text x="40" y="54" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="25" font-weight="600" fill="#f5f5f5">The cache earns its place only because the feed is ranked</text>
+<text x="40" y="84" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="15.5" fill="#a0a0a0">Pulse · feed latency p50 · 5,000 users · 633,422 follows · 300,000 posts</text>
+<line x1="267.5" y1="140" x2="267.5" y2="434" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+<text x="252" y="193.66666666666666" text-anchor="end" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="18" fill="#f5f5f5">chronological join</text>
+<path d="M268,174.66666666666666 H292.1023622047244 A5,5 0 0 1 297.1023622047244,179.66666666666666 V195.66666666666666 A5,5 0 0 1 292.1023622047244,200.66666666666666 H268 Z" fill="#0099ba" fill-opacity="0.18" stroke="#0099ba" stroke-width="1.5"/>
+<text x="311.1023622047244" y="194.66666666666666" font-family="ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,monospace" font-size="19" fill="#f5f5f5">44<tspan font-size="14" fill="#a0a0a0"> ms</tspan></text>
+<text x="268" y="220.66666666666666" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">no ranking at all — the honest baseline</text>
+<text x="252" y="285" text-anchor="end" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="18" fill="#f5f5f5">hybrid, warm cache</text>
+<path d="M268,266 H311.9448818897638 A5,5 0 0 1 316.9448818897638,271 V287 A5,5 0 0 1 311.9448818897638,292 H268 Z" fill="#0099ba"/>
+<text x="330.9448818897638" y="286" font-family="ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,monospace" font-size="19" fill="#f5f5f5">74<tspan font-size="14" fill="#a0a0a0"> ms</tspan></text>
+<text x="268" y="312" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">ranked · 92 ms at p95</text>
+<text x="252" y="376.3333333333333" text-anchor="end" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="18" fill="#f5f5f5">ranked per request</text>
+<path d="M268,357.3333333333333 H683 A5,5 0 0 1 688,362.3333333333333 V378.3333333333333 A5,5 0 0 1 683,383.3333333333333 H268 Z" fill="#0099ba"/>
+<text x="702" y="377.3333333333333" font-family="ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,monospace" font-size="19" fill="#f5f5f5">635<tspan font-size="14" fill="#a0a0a0"> ms</tspan></text>
+<text x="268" y="403.3333333333333" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">8.6× slower at p50, 11.2× at p95</text>
+<text x="40" y="474" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">The hybrid path stays flat as the corpus grows 6×; the per-request path degrades 6.5×.</text>
+</svg>

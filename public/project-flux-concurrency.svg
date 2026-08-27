@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-labelledby="t d">
+<title id="t">The fastest strategy is the broken one</title>
+<desc id="d">Horizontal bar chart of throughput for four concurrency-control strategies under 200 simultaneous transfers against funds for 100. Naive read-modify-write is fastest at 453 tps but overdraws the account by 220 rupees, posting 122 transfers. SELECT FOR UPDATE reaches 375 tps, optimistic versioning 91 tps with 938 retries, and SERIALIZABLE 77 tps with 1,082 retries — each posting exactly 100.</desc>
+<rect width="800" height="500" fill="#121212"/>
+<text x="40" y="54" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="25" font-weight="600" fill="#f5f5f5">The fastest strategy is the broken one</text>
+<text x="40" y="84" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="15.5" fill="#a0a0a0">Flux · 200 simultaneous transfers against funds for 100 · throughput</text>
+<line x1="267.5" y1="140" x2="267.5" y2="434" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+<text x="252" y="182.25" text-anchor="end" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="18" fill="#f5f5f5">naive read-modify-write</text>
+<path d="M268,163.25 H683 A5,5 0 0 1 688,168.25 V184.25 A5,5 0 0 1 683,189.25 H268 Z" fill="#d03b3b"/>
+<text x="702" y="183.25" font-family="ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,monospace" font-size="19" fill="#f5f5f5">453<tspan font-size="14" fill="#a0a0a0"> tps</tspan></text>
+<text x="268" y="209.25" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#d03b3b">✗ overdrew ₹220 — 122 transfers posted</text>
+<text x="252" y="250.75" text-anchor="end" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="18" fill="#f5f5f5">SELECT … FOR UPDATE</text>
+<path d="M268,231.75 H610.682119205298 A5,5 0 0 1 615.682119205298,236.75 V252.75 A5,5 0 0 1 610.682119205298,257.75 H268 Z" fill="#0099ba"/>
+<text x="629.682119205298" y="251.75" font-family="ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,monospace" font-size="19" fill="#f5f5f5">375<tspan font-size="14" fill="#a0a0a0"> tps</tspan></text>
+<text x="268" y="277.75" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">✓ exactly 100 posted</text>
+<text x="252" y="319.25" text-anchor="end" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="18" fill="#f5f5f5">optimistic versioning</text>
+<path d="M268,300.25 H347.3708609271523 A5,5 0 0 1 352.3708609271523,305.25 V321.25 A5,5 0 0 1 347.3708609271523,326.25 H268 Z" fill="#0099ba"/>
+<text x="366.3708609271523" y="320.25" font-family="ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,monospace" font-size="19" fill="#f5f5f5">91<tspan font-size="14" fill="#a0a0a0"> tps</tspan></text>
+<text x="268" y="346.25" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">✓ exactly 100 posted · 938 retries</text>
+<text x="252" y="387.75" text-anchor="end" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="18" fill="#f5f5f5">SERIALIZABLE</text>
+<path d="M268,368.75 H334.3907284768212 A5,5 0 0 1 339.3907284768212,373.75 V389.75 A5,5 0 0 1 334.3907284768212,394.75 H268 Z" fill="#0099ba"/>
+<text x="353.3907284768212" y="388.75" font-family="ui-monospace,'Cascadia Mono','Segoe UI Mono',Consolas,monospace" font-size="19" fill="#f5f5f5">77<tspan font-size="14" fill="#a0a0a0"> tps</tspan></text>
+<text x="268" y="414.75" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">✓ exactly 100 posted · 1,082 retries</text>
+<text x="40" y="474" font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif" font-size="14.5" fill="#808080">Correctness costs 1.2×–5.9× throughput. Double-entry held through the failing run — the global sum stayed 0.</text>
+</svg>

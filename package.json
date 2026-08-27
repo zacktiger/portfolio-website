@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "refresh:posts": "node scripts/refresh-posts.mjs"
+    "refresh:posts": "node scripts/refresh-posts.mjs",
+    "refresh:repos": "node scripts/refresh-repos.mjs",
+    "make:charts": "node scripts/make-project-charts.mjs"
   },
   "keywords": [],
   "author": "",
