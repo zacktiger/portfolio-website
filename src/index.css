@@ -409,8 +409,11 @@ h1, h2, h3, h4, h5, h6 {
               border-color 0.5s ease;
 }
 
-.project-row:nth-child(odd) .project-visual { transform: rotate(-1.6deg); }
-.project-row:nth-child(even) .project-visual { transform: rotate(1.6deg); }
+/* One fixed tilt rather than an odd/even alternation. The visual now sits
+   inside a card's expanded panel, so nth-child counts cards — and only one
+   card has a screenshot, which made the alternation a coin toss on which way
+   the single tilted image leaned. */
+.project-row .project-visual { transform: rotate(-1.6deg); }
 
 .project-row:hover .project-visual {
   transform: rotate(0deg) scale(1.015);
@@ -429,19 +432,46 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ═══════════════════════════════════════════
-   FEATURED PROJECT CARD — the bounded surface a case study rides on
+   FEATURED PROJECT CARD — a pitch that fits, with the proof one click away
 
-   The horizontal track slides these sideways as you scroll. Full-bleed
-   content on the page background gave the motion nothing to read against:
-   mid-transition you saw one case study's prose and the next one's metric
-   rail side by side with no boundary, which looks like a broken layout
-   rather than like two cards passing. An edge fixes that on its own.
+   Three cards, all exactly as tall as each other. They did not use to be:
+   carrying the resume bullets, they measured 630 / 646 / 894px inside a 768px
+   pinned frame, so the tallest lost 126px off its own edges with no way to
+   reach it, and two cards passing each other read as two different kinds of
+   object. Splitting the pitch from the proof is what fixed it — the reasoning
+   is in FeaturedProjects.jsx.
+
+   HOW THE HEIGHTS ARE GUARANTEED, in order of importance:
+
+     1. Every row of a closed card RESERVES its space whether it needs it or
+        not — `__title` two lines, `__thesis` three, `.metric-label` two — and
+        each is clamped so it cannot take more. Identical rows, identical
+        cards, and it survives an edit to the copy.
+     2. `__foot` takes `margin-top: auto`, so whatever slack is left lands in
+        one place rather than being distributed differently on each card.
+     3. `min-height` is a floor under (1) and (2) and nothing more. It is NOT
+        the mechanism — don't let it become one, and don't raise it to paper
+        over a row that has started to disagree.
+
+   Everything the reader has to ask for — the bullets, the corpus the numbers
+   were measured on, the screenshot — lives in `__detail`, outside all of
+   that, where its height cannot make one card disagree with another.
+
+   Below `sm` the reservations and the clamp are dropped: a phone shows one
+   card at a time, so uniformity buys nothing there, and clamping a 26-word
+   thesis to three lines at 375px would cut off real text.
 
    The background is opaque on purpose. It occludes the PixelModels floaters
    and the SectionPath ribbon, which is why a wireframe blob no longer lands
    on the "74 ms" label — the decorative layer passes visibly BEHIND the card
    instead of being clipped out of the gutter.
    ═══════════════════════════════════════════ */
+
+.featured-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
 
 .project-card {
   position: relative;
@@ -482,96 +512,97 @@ h1, h2, h3, h4, h5, h6 {
 
 .project-card__inner {
   padding: clamp(2rem, 3.4vw, 3.25rem);
-}
-
-/*
- * An off-centre card is dimmed and part-way off screen. Blocking the pointer
- * keeps its links from stealing a click aimed at the card in the middle.
- * Focus is deliberately NOT blocked — pointer-events doesn't affect keyboard
- * navigation, and the tab order is the only way through the track without a
- * mouse.
- */
-.project-card--away {
-  pointer-events: none;
-}
-
-/*
- * The track's peeking neighbours dissolve into the gutter rather than running
- * off a hard edge — and, at the right, rather than sliding under the dock nav,
- * where a dim half-card showing through the icon rail just read as debris. The
- * fade is wider than the dock (58px + a 24px offset) so the peek is already
- * mostly gone by the time it reaches it. The centred card spans the middle
- * 1100px and is never touched.
- */
-.track-mask {
-  -webkit-mask-image: linear-gradient(
-    90deg,
-    transparent 0,
-    #000 120px,
-    #000 calc(100% - 120px),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    90deg,
-    transparent 0,
-    #000 120px,
-    #000 calc(100% - 120px),
-    transparent 100%
-  );
-}
-
-/* Progress ticks under the track — also the control for it */
-.track-tick {
-  flex: 1;
   display: flex;
-  align-items: center;
-  padding: 10px 0;
-  background: none;
-  border: 0;
-  cursor: pointer;
+  flex-direction: column;
+  min-height: 460px;
 }
 
-.track-tick__bar {
-  display: block;
-  width: 100%;
-  height: 1px;
-  transition: background-color 0.5s ease, height 0.3s ease;
+.project-card__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
 }
 
-.track-tick:hover .track-tick__bar,
-.track-tick[aria-current='true'] .track-tick__bar {
-  height: 2px;
+/* Smaller than the standalone .ghost-num. In the meta row it is a marker, not
+   a watermark: at the full 6.5rem it set the card's first row taller than the
+   title it labels. */
+.project-card__meta .ghost-num {
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .project-card,
-  .track-tick__bar {
-    transition: none;
-  }
+.project-card__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  /* Two lines reserved. Every title is one line at 1100px, but the longest
+     wraps below ~900px, and a card that grows there is the whole bug. */
+  min-height: calc(2 * 1.15em);
+}
+
+.project-card__stack {
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.025em;
+  color: var(--color-text-muted);
+}
+
+.project-card__thesis {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 1.25rem;
+  max-width: 60ch;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+  min-height: calc(3 * 1.75em);
 }
 
 /* ═══════════════════════════════════════════
-   METRIC STACK — what a featured project leads with
+   METRIC STRIP — what a featured project leads with
 
-   Three measurements in the pinned rail beside each case study. They stay on
-   screen while the prose scrolls past, so the numbers are the constant and
-   the explanation is the variable. The value is set large in the heading face
-   because it is the argument; the label carries the units and the caveat.
+   Three measurements, ACROSS. This was a vertical list in a four-column left
+   rail, which is what forced the 4/8 column split and made the card tall.
+   Across is the most scannable form for numbers, it reads as a spec sheet,
+   and it makes the same band identical on all three cards. The value is set
+   large in the heading face because it is the argument; the label carries the
+   units and the caveat.
    ═══════════════════════════════════════════ */
 
-.metric-stack {
-  margin-top: 1.5rem;
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 1.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.metric-item {
-  padding: 0.85rem 0 0.9rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   transition: border-color 0.5s ease;
 }
 
+.metric-item {
+  padding: 1rem 1.25rem 1.1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.5s ease;
+}
+
+.metric-item:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.project-row:hover .metric-strip {
+  border-top-color: rgba(0, 212, 255, 0.16);
+}
+
 .project-row:hover .metric-item {
-  border-bottom-color: rgba(0, 212, 255, 0.16);
+  border-left-color: rgba(0, 212, 255, 0.16);
 }
 
 .metric-value {
@@ -585,6 +616,9 @@ h1, h2, h3, h4, h5, h6 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Two lines reserved. The labels run 29–37 characters, so some wrap and some
+   don't depending on the width — exactly the drift that puts the cards back
+   out of agreement with each other. */
 .metric-label {
   display: block;
   margin-top: 0.4rem;
@@ -594,6 +628,99 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
+  min-height: calc(2 * 1.55em);
+}
+
+/* ── The foot: the disclosure and the two links ──
+   `margin-top: auto` is load-bearing. It collects whatever slack the reserved
+   rows above left over into a single place, so the foot sits on the card's
+   bottom edge at the same offset on every card. */
+
+.project-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  margin-top: auto;
+  padding-top: 1.75rem;
+}
+
+.project-card__foot button {
+  cursor: pointer;
+}
+
+.project-card__links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-left: auto;
+}
+
+/* ── The proof, revealed in place ──────────
+   Outside the reserved rows entirely: whatever this costs in height is spent
+   only on the card the reader opened. */
+
+.project-card__detail {
+  margin-top: 1.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.project-card__scale {
+  margin-bottom: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.project-card__tags {
+  margin-top: 1.75rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.025em;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 639px) {
+  .project-card__inner,
+  .project-card__title {
+    min-height: 0;
+  }
+
+  /* Let the thesis run its natural length rather than lose its tail: at this
+     width the reader sees one card at a time and has nothing to compare it
+     against. */
+  .project-card__thesis {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .metric-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-item {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .metric-item:first-child {
+    border-top: 0;
+  }
+
+  .metric-label {
+    min-height: 0;
+  }
+
+  .project-card__links {
+    margin-left: 0;
+  }
 }
 
 /* ═══════════════════════════════════════════

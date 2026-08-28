@@ -57,14 +57,28 @@ export const skillCategories = [
 // ══════════════════════════════════════════
 //  FEATURED PROJECTS — the work the resume leads with
 //
-//  These get a full editorial row each, and they are the only projects that
-//  do. Everything else lives in the archive below, which is generated.
+//  These get a card each, and they are the only projects that do. Everything
+//  else lives in the archive below, which is generated.
 //
-//  `metrics` is what the row is built around: each project earns its space
+//  All three cards are exactly the same height, and that is enforced by the
+//  fields below being roughly the same size as each other — every row of a
+//  closed card reserves its space and clamps to it. So the lengths here are
+//  load-bearing, not incidental:
+//
+//    `description` — the whole pitch, and the only prose on a closed card.
+//      Keep it at 15–30 words. It is clamped to three lines above `sm`, so a
+//      fourth line is silently dropped rather than making one card taller.
+//    `bullets` / `scale` / `image` — the proof. These live in the panel that
+//      "How it works" opens, outside the reserved rows, so their length
+//      genuinely does not matter. Put the detail here, not in `description`.
+//      (`bullets` is also what ResumePage.jsx typesets, so it stays whether
+//      or not the main site is showing it.)
+//
+//  `metrics` is what the card is built around: each project earns its space
 //  with measurements rather than a screenshot. Exactly three cells — the
 //  strip is a three-column grid above `sm`, and a fourth would wrap badly.
 //  Keep `value` short (it is set in a large display face) and put the units
-//  and the caveat in `label`.
+//  and the caveat in `label`; a label runs to two lines and no further.
 //
 //  `repo` must match the GitHub repository name character for character.
 //  `useGitHubRepos` reads it to keep a featured project from also showing up
@@ -72,8 +86,9 @@ export const skillCategories = [
 //  duplicate entry rather than an error.
 //
 //  `image` is optional and deliberately secondary. Backend work has nothing
-//  worth photographing; a row without an image gives its bullets the full
-//  width instead.
+//  worth photographing, and only one of these three has a screenshot at all —
+//  which is exactly why it belongs in the expanded panel. On the card it made
+//  that one 264px taller than the other two.
 // ══════════════════════════════════════════
 
 export const projects = [

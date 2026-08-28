@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight } from 'lucide-react'
 import { projects } from '../data/portfolioData'
 import useGitHubRepos from '../hooks/useGitHubRepos'
-import FeaturedScroller from './FeaturedScroller'
+import FeaturedProjects from './FeaturedProjects'
 
 const fadeUp = {
     initial: { opacity: 0, y: 30 },
@@ -154,12 +154,12 @@ export default function Projects() {
                         Three I'll defend line by line, then the rest worth showing.
                     </p>
                 </motion.div>
-            </div>
 
-            {/* Featured — pinned horizontal track of bounded cards */}
-            <FeaturedScroller projects={projects} />
+                {/* Featured — three cards of equal height, each opening in place.
+                    Inside the container now: a card is content at the standard
+                    reading measure, not a surface that has to escape it. */}
+                <FeaturedProjects projects={projects} />
 
-            <div className="content-container">
                 {/* Archive */}
                 <motion.div {...fadeUp} className="mt-28 mb-6">
                     <div className="flex items-baseline gap-4">
