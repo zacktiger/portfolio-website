@@ -1,7 +1,27 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import { skillCategories, projects, moreProjects, achievements, contactInfo } from '../data/portfolioData'
+import {
+    skillCategories,
+    projects,
+    archiveFallback,
+    repoOverrides,
+    achievements,
+    contactInfo,
+} from '../data/portfolioData'
+
+/**
+ * The archive, as the terminal sees it.
+ *
+ * `runCommand` is a module-level function, so it can't use `useGitHubRepos`.
+ * It reads the baked snapshot instead — the terminal is an easter egg, and a
+ * list that trails GitHub by a `npm run refresh:repos` is fine here.
+ */
+const archiveEntries = archiveFallback.map((repo) => ({
+    name: repoOverrides[repo.name]?.title || repo.name,
+    language: repoOverrides[repo.name]?.language || repo.language || '—',
+    github: repo.url,
+}))
 
 const PROMPT = 'kshitij@portfolio:~$'
 const SECTIONS = ['home', 'about', 'skills', 'projects', 'contact']
@@ -44,9 +64,9 @@ function runCommand(rawInput, { close, launchGame }) {
         case 'whoami':
             return [
                 line('out', 'Kshitij Bachhav — full-stack developer.'),
-                line('out', 'Builds multi-tenant SaaS platforms, algorithm visualizers, and'),
-                line('out', 'real-time prediction markets. Winner of Technex GameJam 2024 (IIT BHU).'),
-                line('out', "Currently shipping with React, Node.js, FastAPI, and PostgreSQL."),
+                line('out', 'Builds ranked social feeds, concurrency-safe ledgers, and'),
+                line('out', 'multi-tenant SaaS. Winner of Technex GameJam 2024 (IIT BHU).'),
+                line('out', "Currently shipping with React, Node.js, PostgreSQL, and Redis."),
             ]
 
         case 'skills':
@@ -80,7 +100,7 @@ function runCommand(rawInput, { close, launchGame }) {
                 ]),
                 line('out', ''),
                 line('out', 'More:'),
-                ...moreProjects.map(p =>
+                ...archiveEntries.map(p =>
                     line('rich', (
                         <span>
                             <span className="text-text-secondary">▸ {p.name}</span>

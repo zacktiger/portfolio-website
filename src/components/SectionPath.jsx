@@ -10,31 +10,99 @@ const PathCarModel = lazy(() => import('./PathCarModel'))
  * rides down the route as you scroll.
  *
  * The line is measured against the real section positions (#home … #contact),
- * so it curves left and right to pass through the vertical centre of each one,
- * dropping a glowing waypoint node on the way. The coloured stroke draws itself
- * up to the car (Framer Motion `useScroll`), so the car looks like it's laying
- * the trail behind it.
+ * so it curves left and right to pass through each one, dropping glowing
+ * waypoint nodes on the way. The coloured stroke
+ * draws itself up to the car (Framer Motion `useScroll`), so the car looks like
+ * it's laying the trail behind it.
  *
- * The car's progress along the path is keyed to the section nodes: scrolling
- * drives it from one node to the next, and it *dwells* at each node (a flat
- * spot in the scroll→progress map) with an arrival burst. Reversing the scroll
- * makes it hop and flip 180° to face the new direction.
+ * The car's progress along the path is keyed to those nodes: scrolling drives
+ * it from one to the next, and it *dwells* at each node (a flat spot in the
+ * scroll→progress map) with an arrival burst. Reversing the scroll makes it hop
+ * and flip 180° to face the new direction.
+ *
+ * Two rules keep the route's rhythm tied to the page's rhythm rather than to
+ * its pixel height, and both exist because breaking them looked broken:
+ * waypoints are spaced by DISTANCE, not one per section (see MAX_NODE_GAP), and a
+ * dwell is capped in pixels (see MAX_DWELL_PX) so the car can never idle its way
+ * off the top of the viewport.
  *
  * It sits at z-2: above the ambient PixelModels floaters, behind the content.
  * Everything is pointer-events:none and aria-hidden — purely decorative.
  */
 
-// Anchors to route through (kept in sync with Navbar's navItems / section ids)
+// Sections to route through (kept in sync with Navbar's navItems / section ids).
+// The route swings from one side to the other BETWEEN these, which is safe only
+// because every section carries vertical padding for the swing to cross.
 const SECTION_IDS = ['home', 'about', 'skills', 'projects', 'github', 'writing', 'contact']
 
-// One hue per node, sampled down the same ramp as the gradient below so a
-// node's colour matches the ribbon where it sits.
-const NODE_COLORS = ['#00d4ff', '#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#fbbf24', '#34d399']
+/*
+ * How far apart waypoints may be, in pixels of page.
+ *
+ * A waypoint per section put one node in the middle of #projects — six screens
+ * tall — so the car ran 5,190px dead straight with a single dot on it, while
+ * the three short sections above it got a waypoint every 900px. The rhythm of
+ * the route had nothing to do with the rhythm of the page.
+ *
+ * A tall section is therefore subdivided into several waypoints ALONG ITS OWN
+ * RAIL, at the same x. The tempting fix — giving the featured track and the
+ * archive a route stop each — is worse: a stop is a thing the route swings
+ * around, and those two boxes butt straight up against each other's content
+ * with no padding between them, so the swing crossed the "Projects / built."
+ * heading on the way in and the last row of archive cards on the way out.
+ * Subdividing adds the missing beats without adding a single crossing.
+ */
+const MAX_NODE_GAP = 1600
+
+// The hue ramp the nodes and the ribbon share, so a node's colour matches the
+// ribbon where it sits. Sampled by position down the page, not by index, since
+// there are more nodes than sections.
+const NODE_COLORS = [
+    '#00d4ff', '#38bdf8', '#818cf8', '#a78bfa',
+    '#c084fc', '#f472b6', '#fbbf24', '#34d399',
+]
+
+// .content-container's max-width and its horizontal padding formula — the
+// route has to clear the text these produce, so they have to match.
+const CONTENT_MAX = 1100
+const CONTENT_PAD = (w) => clamp(w * 0.05, 24, 80)
+
+/*
+ * The longest a dwell may last, in pixels of scroll.
+ *
+ * The car freezes in DOCUMENT space while it dwells at a node, so every pixel
+ * of dwell is a pixel it slides UP the viewport. The dwell used to be a flat
+ * 28% of the gap to the nearest neighbouring node, which is fine between two
+ * 900px sections and catastrophic around #projects: the gap there was ~3,200px,
+ * so the car sat still for 896px of scroll on each side of the node — it left
+ * the top of a 900px viewport entirely, then raced back down to catch up. A
+ * dwell is a beat, not a stop, so it gets an absolute ceiling. 110px also
+ * keeps the catch-up afterwards under ~1.3x scroll speed on the tightest gap
+ * between two waypoints (1,000px), which reads as the car pulling away from a
+ * stop rather than as it teleporting.
+ */
+const MAX_DWELL_PX = 110
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 
-// Smooth spline through points using a Catmull-Rom → cubic-bezier conversion.
-// Gives soft, auto-tangented curves as the route weaves side to side.
+/*
+ * Smooth spline through points using a Catmull-Rom → cubic-bezier conversion.
+ * Gives soft, auto-tangented curves as the route weaves side to side.
+ *
+ * Each control point is CLAMPED to its own segment's bounding box, which a
+ * cubic Bézier is guaranteed to stay inside (it lies within the convex hull of
+ * its four control points). Two things depend on that:
+ *
+ *   · No sideways overshoot. Plain Catmull-Rom takes its tangent from the
+ *     points either side, so at a waypoint on the right rail the previous
+ *     waypoint on the LEFT rail dragged the control point 201px further right
+ *     and the curve bulged ~89px past the rail — straight under the dock nav,
+ *     which is exactly the clearance the amplitude was calculated to keep.
+ *     Clamped, a rail segment (both ends at the same x) is dead vertical and
+ *     the entire swing happens in the crossing segment, where it belongs.
+ *   · Monotonic y. The route is inverted by y (see the sample table in the
+ *     geometry effect) and that inversion assumes y never backtracks. Vertical
+ *     overshoot at a waypoint would silently break it.
+ */
 function buildPath(pts) {
     if (pts.length < 2) return ''
     let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
@@ -43,10 +111,14 @@ function buildPath(pts) {
         const p1 = pts[i]
         const p2 = pts[i + 1]
         const p3 = pts[i + 2] || pts[i + 1]
-        const cp1x = p1.x + (p2.x - p0.x) / 6
-        const cp1y = p1.y + (p2.y - p0.y) / 6
-        const cp2x = p2.x - (p3.x - p1.x) / 6
-        const cp2y = p2.y - (p3.y - p1.y) / 6
+        const loX = Math.min(p1.x, p2.x)
+        const hiX = Math.max(p1.x, p2.x)
+        const loY = Math.min(p1.y, p2.y)
+        const hiY = Math.max(p1.y, p2.y)
+        const cp1x = clamp(p1.x + (p2.x - p0.x) / 6, loX, hiX)
+        const cp1y = clamp(p1.y + (p2.y - p0.y) / 6, loY, hiY)
+        const cp2x = clamp(p2.x - (p3.x - p1.x) / 6, loX, hiX)
+        const cp2y = clamp(p2.y - (p3.y - p1.y) / 6, loY, hiY)
         d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
     }
     return d
@@ -133,7 +205,7 @@ export default function SectionPath() {
     const headingRef = useRef(1) // 1 = forward (down-path), -1 = reversed
     const arrivedRef = useRef(-1) // last node the car "arrived" at
     const litCountRef = useRef(0) // last lit-node count pushed to state (dedupes renders)
-    const lastTRef = useRef(null) // last route fraction, for deadzoned heading changes
+    const lastYRef = useRef(null) // last page position, for deadzoned heading changes
     const carAngleRef = useRef(null) // eased heading, so the car turns into corners
     // Target orientation handed to the 3D rig (PathCarModel eases toward it each
     // frame): yaw = steer heading (world radians), bank = lean into the bend.
@@ -149,8 +221,9 @@ export default function SectionPath() {
         return () => mq.removeEventListener('change', update)
     }, [])
 
-    // scroll-progress value → route fraction, via the node keyframes (flat spots
-    // make the car dwell at each node).
+    // scroll-progress value → document y, via the node keyframes (flat spots make
+    // the car dwell at each node). updateCar turns that y into a point on the
+    // route.
     const remap = useCallback((v) => {
         const g = geomRef.current
         if (!g) return v
@@ -175,18 +248,25 @@ export default function SectionPath() {
         hop.classList.add('path-car__hop--go')
     }, [])
 
-    // Position + orient the car at route fraction t. This is the single source of
-    // truth for everything keyed to the car: it also lights the nodes the car has
-    // reached, flips the car to face its travel direction, and fires an arrival
-    // burst — all from the same t, so nothing drifts out of sync with the car.
-    // (Lighting and the flip used to be driven off raw scrollY, which ran ahead
-    // of the spring-smoothed car.)
-    const updateCar = useCallback((t) => {
+    // Position + orient the car at document position y. This is the single source
+    // of truth for everything keyed to the car: it also lights the nodes the car
+    // has reached, flips the car to face its travel direction, and fires an
+    // arrival burst — all from the same y, so nothing drifts out of sync with the
+    // car. (Lighting and the flip used to be driven off raw scrollY, which ran
+    // ahead of the spring-smoothed car.)
+    //
+    // y is a page coordinate, not a route fraction: see the sample table in the
+    // geometry effect for why the car is driven down the page rather than along
+    // the stroke. The fraction is derived here, and only here.
+    const updateCar = useCallback((y) => {
         const g = geomRef.current
         const pathEl = pathRef.current
         const pos = carPosRef.current
         const spin = carSpinRef.current
         if (!g || !pathEl || !pos || !spin) return
+
+        const t = g.fractionAtY(y)
+        carProgress.set(t)
 
         // Sit the car a little AHEAD of the drawn ribbon tip (which ends at t)
         // along its heading, so the trail ends at the car's tail and it looks like
@@ -216,16 +296,16 @@ export default function SectionPath() {
         // spring jitter; the car doesn't move during a node dwell so it won't
         // spuriously flip there either.
         if (!prefersReduced) {
-            const prevT = lastTRef.current
-            if (prevT === null) {
-                lastTRef.current = t
-            } else if (Math.abs(t - prevT) > 0.0015) {
-                const dir = t > prevT ? 1 : -1
+            const prevY = lastYRef.current
+            if (prevY === null) {
+                lastYRef.current = y
+            } else if (Math.abs(y - prevY) > 1.5) {
+                const dir = y > prevY ? 1 : -1
                 if (dir !== headingRef.current) {
                     headingRef.current = dir
                     triggerHop()
                 }
-                lastTRef.current = t
+                lastYRef.current = y
             }
         }
 
@@ -238,20 +318,22 @@ export default function SectionPath() {
         drive.yaw = -cur * DEG + (headingRef.current === -1 ? Math.PI : 0)
         drive.bank = prefersReduced ? 0 : clamp(-delta * DEG * 2.2, -0.32, 0.32)
 
-        // Light every node the car has reached (keyed to the same t that positions
+        // Light every node the car has reached (keyed to the same y that positions
         // it), so a waypoint lights exactly as the car arrives.
         let count = 0
-        for (let i = 0; i < g.fracs.length; i++) if (t >= g.fracs[i]) count++
+        for (let i = 0; i < g.nodeYs.length; i++) if (y >= g.nodeYs[i]) count++
         if (count !== litCountRef.current) {
             litCountRef.current = count
             setLitCount(count)
         }
 
-        // arrival: nearest node within a small fraction window
+        // arrival: nearest node within a fixed window down the page. In pixels,
+        // not in route fraction — a fraction window is worth wildly different
+        // distances in a crossing than in a straight.
         let nearest = -1
-        let best = 0.025
-        for (let i = 0; i < g.fracs.length; i++) {
-            const dd = Math.abs(g.fracs[i] - t)
+        let best = 130
+        for (let i = 0; i < g.nodeYs.length; i++) {
+            const dd = Math.abs(g.nodeYs[i] - y)
             if (dd < best) {
                 best = dd
                 nearest = i
@@ -261,36 +343,121 @@ export default function SectionPath() {
             arrivedRef.current = nearest
             if (nearest !== -1) setBurst({ i: nearest, key: performance.now() })
         }
-    }, [prefersReduced, triggerHop])
+    }, [prefersReduced, triggerHop, carProgress])
 
     // Measure the page and build the route through each section's centre.
     useLayoutEffect(() => {
         const measure = () => {
             const w = document.documentElement.clientWidth
-            const h = document.documentElement.scrollHeight
+            /*
+             * The CONTENT height, from <body>'s own box — deliberately not
+             * `documentElement.scrollHeight`.
+             *
+             * This overlay is absolutely positioned and as tall as the page, so
+             * it does not affect <body>'s layout height but it DOES count toward
+             * the document's scrollable overflow. Measuring scrollHeight there-
+             * fore fed this element's own height back into the size we give it,
+             * and the loop only ever ratchets upward: any transient spike (the
+             * archive grid reflowing under `layout` animations while filtering
+             * is enough) gets latched in, and scrollHeight can never fall back
+             * below it because the overlay is now that tall. Observed live:
+             * 10,790px → 17,997px after four filter clicks, leaving ~7,200px of
+             * dead scroll under the footer and finishing the car's route at 55%.
+             *
+             * <body>'s border-box excludes its absolutely-positioned descendants,
+             * so it is the one measurement here that this component cannot
+             * influence.
+             */
+            const h = document.body.offsetHeight
             if (!w || !h) return
 
             const cx = w / 2
-            // Swing the route out toward the gutters so waypoints sit beside the
-            // content, not on it. Cap the swing at (half-width − 130px) so a node
-            // (plus the car's ~32px half-width) stays clear of the right-edge dock
-            // nav even on narrow desktops (~768–900px), where it used to overlap.
-            const amp = Math.min(w * 0.4, w / 2 - 130)
+            /*
+             * Swing the route out into the gutter — the lane between the text
+             * column and the dock nav.
+             *
+             * `lo` is the nearest the ribbon may come to the reading column:
+             * .content-container's box is capped at CONTENT_MAX and then
+             * padded, so the text stops well short of the box edge, and it is
+             * the text that matters. `hi` is the furthest out it may go before
+             * it runs under the dock nav (58px wide, 24px off the right edge).
+             *
+             * The old rule was `min(w*0.4, w/2 − 130)`, which knew about the
+             * dock but nothing about the text: at 1024px it put the ribbon 79px
+             * INSIDE the reading column. Bias toward `hi` because a featured
+             * card is opaque and simply occludes the ribbon behind it, whereas
+             * running over body copy is always wrong. Where the two constraints
+             * cross (below ~1100px there is no clean lane), clearing the text
+             * wins and the ribbon slides behind the dock instead.
+             */
+            const textHalf = Math.min(CONTENT_MAX, w) / 2 - CONTENT_PAD(w)
+            const lo = textHalf + 28
+            const hi = w / 2 - 108
+            const amp = hi >= lo ? lo + (hi - lo) * 0.72 : Math.min(lo, w / 2 - 40)
 
-            const nodes = SECTION_IDS.map((id, i) => {
+            // A node on its own gives the spline nothing to hold onto, so between
+            // two sections on opposite sides it used to cut one long diagonal
+            // straight across the content column — barely visible in a 900px
+            // section, a 5,500px gash through the projects copy.
+            //
+            // Rail points near each section's top and bottom, at the same x as
+            // its nodes, pin the curve into the gutter for the whole section and
+            // force the left↔right swing into the band spanning the divider.
+            // Every section carries ~112–144px of vertical padding, so the swing
+            // crosses air instead of paragraphs — which is exactly why the inset
+            // has to stay under that 112px.
+            const CROSS_HALF = 104
+
+            const fallbackH = h / SECTION_IDS.length
+            const measured = SECTION_IDS.map((id, i) => {
                 const el = document.getElementById(id)
                 const rect = el?.getBoundingClientRect()
-                const y = rect
-                    ? rect.top + window.scrollY + rect.height / 2
-                    : (h / SECTION_IDS.length) * (i + 0.5)
+                const top = rect ? rect.top + window.scrollY : fallbackH * i
+                const height = rect ? rect.height : fallbackH
                 const dir = i % 2 === 0 ? -1 : 1
-                return { x: cx + dir * amp, y, color: NODE_COLORS[i % NODE_COLORS.length] }
+                const inset = Math.min(CROSS_HALF, height / 2 - 1)
+                return { x: cx + dir * amp, top, height, inset }
             })
 
-            // Thread in from the top edge for a clean lead-in, then END at the last
-            // section node (contact) — the car "arrives" there instead of driving
-            // on into the empty footer and clipping the page bottom.
-            const pathPts = [{ x: nodes[0].x, y: 0 }, ...nodes]
+            /*
+             * Visible waypoints: one per section for a normal section, several
+             * spaced down the rail for a tall one (see MAX_NODE_GAP). They all
+             * share their section's x, so subdividing never adds a crossing —
+             * a tall section just gets more beats on the same straight.
+             */
+            const nodes = []
+            measured.forEach((s) => {
+                const from = s.top + s.inset
+                const span = Math.max(s.height - s.inset * 2, 0)
+                const count = Math.max(1, Math.round(span / MAX_NODE_GAP))
+                for (let k = 0; k < count; k++) {
+                    nodes.push({
+                        x: s.x,
+                        y: count === 1 ? s.top + s.height / 2 : from + (span * (k + 0.5)) / count,
+                    })
+                }
+            })
+            // Colour by position down the page so the ramp still lines up with
+            // the ribbon's gradient now that nodes outnumber sections.
+            const last = Math.max(nodes.length - 1, 1)
+            nodes.forEach((n, i) => {
+                n.color = NODE_COLORS[Math.round((i / last) * (NODE_COLORS.length - 1))]
+            })
+
+            const pathPts = [{ x: measured[0].x, y: 0 }]
+            measured.forEach((s, i) => {
+                const mid = s.top + s.height / 2
+                const enter = s.top + s.inset
+                if (enter < mid) pathPts.push({ x: s.x, y: enter })
+                pathPts.push({ x: s.x, y: mid })
+                // The route ENDS at the last section (contact) — the car "arrives"
+                // there instead of driving on into the footer and clipping the
+                // page bottom — so that one gets no exit rail.
+                const exit = s.top + s.height - s.inset
+                if (i < measured.length - 1 && exit > mid) {
+                    pathPts.push({ x: s.x, y: exit })
+                }
+            })
 
             setLayout({ w, h, d: buildPath(pathPts), nodes })
         }
@@ -326,35 +493,66 @@ export default function SectionPath() {
         const vh = window.innerHeight
         const nodes = layout.nodes
 
-        // Each node's length fraction along the path (y is monotonic, so a
-        // binary search on the sampled point's y finds it).
-        const fracs = nodes.map((n) => {
+        /*
+         * Length ↔ y lookup for the whole route.
+         *
+         * The route is far LONGER than the page is tall — every sideways swing
+         * buys distance without descending (17.5k of path over 10.7k of page at
+         * 1500px wide, so 64% of the stroke goes sideways). Interpolating the
+         * car by path length therefore made its vertical speed lurch: it
+         * stalled through each crossing and sprinted down each straight,
+         * wandering ±290px up and down the viewport over a scroll. Driving it
+         * by y instead — and converting y to a length only at the end — keeps
+         * it at a steady height beside the reader, which is what makes the
+         * dwells legible as deliberate pauses rather than as more lurching.
+         *
+         * y is monotonic along the path, so one evenly-spaced sample table
+         * inverts it; 512 samples is ~21px of path per step here, and the lerp
+         * between two samples covers the rest. Sampling once per measure beats
+         * a binary search of ~22 getPointAtLength calls on every frame.
+         */
+        const SAMPLES = 512
+        const sampleY = new Float64Array(SAMPLES + 1)
+        for (let i = 0; i <= SAMPLES; i++) {
+            sampleY[i] = pathEl.getPointAtLength((i / SAMPLES) * total).y
+        }
+        const fractionAtY = (y) => {
             let lo = 0
-            let hi = total
-            for (let k = 0; k < 22; k++) {
-                const mid = (lo + hi) / 2
-                if (pathEl.getPointAtLength(mid).y < n.y) lo = mid
+            let hi = SAMPLES
+            while (lo < hi) {
+                const mid = (lo + hi) >> 1
+                if (sampleY[mid] < y) lo = mid + 1
                 else hi = mid
             }
-            return lo / total
-        })
+            if (lo === 0) return 0
+            const y0 = sampleY[lo - 1]
+            const y1 = sampleY[lo]
+            const f = y1 > y0 ? (y - y0) / (y1 - y0) : 0
+            return (lo - 1 + f) / SAMPLES
+        }
 
         // Scroll-progress at which each node sits at the viewport centre.
         const denom = Math.max(layout.h - vh, 1)
         const stops = nodes.map((n) => clamp((n.y - vh / 2) / denom, 0, 1))
 
-        // Build the scroll→fraction keyframes with a flat "dwell" around each
-        // stop so the car pauses at every node.
+        // Build the scroll→y keyframes with a flat "dwell" around each stop so
+        // the car pauses at every node. The dwell is capped in pixels (see
+        // MAX_DWELL_PX) — proportional dwells let the car slide off the top of
+        // the screen around a very tall section.
+        const maxDwell = MAX_DWELL_PX / denom
         const xs = []
         const ys = []
         for (let i = 0; i < nodes.length; i++) {
             const prev = i > 0 ? stops[i - 1] : 0
             const next = i < nodes.length - 1 ? stops[i + 1] : 1
-            const dw = Math.max(Math.min(stops[i] - prev, next - stops[i]) * 0.28, 0)
+            const dw = Math.min(
+                Math.max(Math.min(stops[i] - prev, next - stops[i]) * 0.28, 0),
+                maxDwell
+            )
             xs.push(clamp(stops[i] - dw, 0, 1))
-            ys.push(fracs[i])
+            ys.push(nodes[i].y)
             xs.push(clamp(stops[i] + dw, 0, 1))
-            ys.push(fracs[i])
+            ys.push(nodes[i].y)
         }
         if (xs[0] > 0) {
             xs.unshift(0)
@@ -362,29 +560,26 @@ export default function SectionPath() {
         }
         if (xs[xs.length - 1] < 1) {
             xs.push(1)
-            ys.push(1)
+            ys.push(ys[ys.length - 1])
         }
         // keep xs strictly increasing for the interpolation
         for (let i = 1; i < xs.length; i++) if (xs[i] <= xs[i - 1]) xs[i] = xs[i - 1] + 1e-4
 
-        geomRef.current = { total, fracs, xs, ys }
+        geomRef.current = { total, fractionAtY, nodeYs: nodes.map((n) => n.y), xs, ys }
 
-        const t = prefersReduced ? 1 : remap(drawn.get())
-        carProgress.set(t)
-        updateCar(t)
+        const y = prefersReduced ? ys[ys.length - 1] : remap(drawn.get())
+        updateCar(y)
     }, [layout, prefersReduced, remap, updateCar, drawn, carProgress])
 
     // Drive the ribbon draw + car from the (spring-smoothed) scroll value.
     useEffect(() => {
         if (prefersReduced) {
+            const g = geomRef.current
             carProgress.set(1)
+            if (g) updateCar(g.ys[g.ys.length - 1])
             return
         }
-        const apply = (v) => {
-            const t = remap(v)
-            carProgress.set(t)
-            updateCar(t)
-        }
+        const apply = (v) => updateCar(remap(v))
         apply(drawn.get())
         return drawn.on('change', apply)
     }, [prefersReduced, drawn, carProgress, remap, updateCar])
@@ -402,13 +597,15 @@ export default function SectionPath() {
             <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" style={{ display: 'block' }}>
                 <defs>
                     <linearGradient id="section-path-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={h}>
-                        <stop offset="0" stopColor="#00d4ff" />
-                        <stop offset="0.16" stopColor="#38bdf8" />
-                        <stop offset="0.33" stopColor="#818cf8" />
-                        <stop offset="0.5" stopColor="#c084fc" />
-                        <stop offset="0.66" stopColor="#f472b6" />
-                        <stop offset="0.83" stopColor="#fbbf24" />
-                        <stop offset="1" stopColor="#34d399" />
+                        {/* One stop per waypoint, evenly spaced, so a node's
+                            colour matches the ribbon where it sits. */}
+                        {NODE_COLORS.map((c, i) => (
+                            <stop
+                                key={c}
+                                offset={i / (NODE_COLORS.length - 1)}
+                                stopColor={c}
+                            />
+                        ))}
                     </linearGradient>
                 </defs>
 
@@ -427,7 +624,7 @@ export default function SectionPath() {
                 {nodes.map((n, i) => {
                     const lit = i < litCount
                     return (
-                        <g key={SECTION_IDS[i]}>
+                        <g key={`${n.x}-${n.y}`}>
                             {/* soft glow blob */}
                             <circle
                                 cx={n.x} cy={n.y} r={14} fill={n.color}
