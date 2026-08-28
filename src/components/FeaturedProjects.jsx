@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useId } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Github, ArrowUpRight, ChevronDown } from 'lucide-react'
 
 /*
@@ -84,11 +84,16 @@ function ProjectCard({ project, index, total }) {
         >
             <div className="project-card__inner">
                 <div className="project-card__meta">
-                    <span className="ghost-num" aria-hidden="true">
-                        {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <span className="font-mono text-[10.5px] tracking-[0.2em] text-text-muted tabular-nums">
-                        / {String(total).padStart(2, '0')}
+                    {/* The whole ordinal is decorative, so it is hidden as one
+                        unit — hiding the "01" but not the "/ 03" left a screen
+                        reader announcing a bare "slash oh three". */}
+                    <span className="contents" aria-hidden="true">
+                        <span className="ghost-num">
+                            {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <span className="font-mono text-[10.5px] tracking-[0.2em] text-text-muted tabular-nums">
+                            / {String(total).padStart(2, '0')}
+                        </span>
                     </span>
                     <span className="ml-auto font-mono text-[11px] tracking-[0.2em] uppercase text-accent">
                         {project.date}
@@ -158,72 +163,83 @@ function ProjectCard({ project, index, total }) {
                 </div>
 
                 {/*
-                    The panel is unmounted when closed rather than collapsed to
-                    zero height. A zero-height `overflow: hidden` box still holds
-                    matchable text, so find-in-page would land on prose nobody
-                    can see — the same class of problem the old track had.
+                    The panel is UNMOUNTED when closed rather than collapsed to
+                    zero height. A zero-height `overflow: hidden` box still
+                    holds matchable text, so find-in-page would land on prose
+                    nobody can see — the same class of problem the old track
+                    had.
+
+                    Nothing here animates HEIGHT, and the panel uses no Framer
+                    at all: it mounts, a CSS keyframe fades it in, and closing
+                    unmounts it outright.
+
+                    That is a deliberate choice rather than a discovered bug.
+                    Animating to `height: 'auto'` means measuring the element
+                    first, and measurement is the part that broke: with the
+                    panel shrinkable (see `flex: none` in index.css) the
+                    measured height collapsed to zero and the panel latched
+                    there — `aria-expanded` read true, the chevron flipped, and
+                    nothing opened. `flex: none` fixes that specific collapse,
+                    but the layout here has no need to animate its own height
+                    to begin with, and not measuring is strictly more robust
+                    than measuring correctly. The layout lands instantly and
+                    only opacity and offset animate.
+
+                    Keeping the fade in CSS rather than JS is the same
+                    reasoning applied once more: expanding a card changes the
+                    body height, which wakes the ResizeObserver SectionPath
+                    keeps on `document.body`, and the `measure()` that follows
+                    rebuilds a 512-sample length table with `getPointAtLength`.
+                    A composited CSS animation is indifferent to how busy the
+                    main thread is; a rAF-driven one is not.
                 */}
-                <AnimatePresence initial={false}>
-                    {open && hasDetail && (
-                        <motion.div
-                            key="panel"
-                            id={panelId}
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={
-                                prefersReduced
-                                    ? { duration: 0 }
-                                    : { duration: 0.35, ease: [0.22, 1, 0.36, 1] }
-                            }
-                            style={{ overflow: 'hidden' }}
-                        >
-                            <div className="project-card__detail">
-                                {project.scale && (
-                                    <p className="project-card__scale">{project.scale}</p>
-                                )}
+                {open && hasDetail && (
+                    <div id={panelId} className="project-card__panel">
+                        <div className="project-card__detail">
+                            {project.scale && (
+                                <p className="project-card__scale">{project.scale}</p>
+                            )}
 
-                                {project.bullets?.length > 0 && (
-                                    <ul className="space-y-3 max-w-3xl">
-                                        {project.bullets.map((bullet, i) => (
-                                            <li key={i} className="flex items-start gap-3">
-                                                <span className="w-1 h-1 rounded-full bg-accent mt-[9px] flex-shrink-0" />
-                                                <span className="text-[13.5px] text-text-tertiary leading-[1.7]">
-                                                    {bullet}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                            {project.bullets?.length > 0 && (
+                                <ul className="space-y-3 max-w-3xl">
+                                    {project.bullets.map((bullet, i) => (
+                                        <li key={i} className="flex items-start gap-3">
+                                            <span className="w-1 h-1 rounded-full bg-accent mt-[9px] flex-shrink-0" />
+                                            <span className="text-[13.5px] text-text-tertiary leading-[1.7]">
+                                                {bullet}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
 
-                                {/* Supporting evidence, not the headline — which is
-                                    why it lives in here. Its height used to be the
-                                    single biggest reason the cards disagreed. */}
-                                {project.image && (
-                                    <a
-                                        href={project.live || project.github}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label={`${project.title} preview`}
-                                        className="block mt-8 max-w-xl"
-                                    >
-                                        <div className="project-visual aspect-[16/10]">
-                                            <img
-                                                src={project.image}
-                                                alt={`${project.title} preview`}
-                                                loading="lazy"
-                                            />
-                                        </div>
-                                    </a>
-                                )}
+                            {/* Supporting evidence, not the headline — which is
+                                why it lives in here. Its height used to be the
+                                single biggest reason the cards disagreed. */}
+                            {project.image && (
+                                <a
+                                    href={project.live || project.github}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label={`${project.title} preview`}
+                                    className="block mt-8 max-w-xl"
+                                >
+                                    <div className="project-visual aspect-[16/10]">
+                                        <img
+                                            src={project.image}
+                                            alt={`${project.title} preview`}
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                </a>
+                            )}
 
-                                <p className="project-card__tags">
-                                    {project.tags.join('  /  ')}
-                                </p>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                        <p className="project-card__tags">
+                            {project.tags.join('  /  ')}
+                        </p>
+                        </div>
+                    </div>
+                )}
             </div>
         </motion.article>
     )
